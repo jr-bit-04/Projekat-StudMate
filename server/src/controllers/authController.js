@@ -1,6 +1,8 @@
 const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const nodemailer = require("nodemailer");
 
 const createToken = (userId, role) => {
   return jwt.sign(
@@ -134,8 +136,64 @@ const login = async (req, res) => {
 
   }
 };
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
 
+    if (!email) {
+      return res.status(400).json({ message: "Email je obavezan." });
+    }
+
+    const result = await pool.query(
+      "SELECT id, email FROM users WHERE email = $1",
+      [email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({
+        message: "Ako nalog postoji, link za reset lozinke je poslat na email.",
+      });
+    }
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password/${token}`;
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      from: `"StudMate" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Reset lozinke - StudMate",
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Reset lozinke</h2>
+          <p>Klikni na dugme ispod da resetuješ lozinku:</p>
+          <a href="${resetLink}" style="display:inline-block;background:#1672f6;color:white;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold;">
+            Resetuj lozinku
+          </a>
+          <p>Ako nisi tražila reset lozinke, ignoriši ovaj email.</p>
+        </div>
+      `,
+    });
+
+    res.json({
+      message: "Ako nalog postoji, link za reset lozinke je poslat na email.",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Greška pri slanju emaila.",
+      error: error.message,
+    });
+  }
+};
 module.exports = {
   register,
   login,
+  forgotPassword
 };
