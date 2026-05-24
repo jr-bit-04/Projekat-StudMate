@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/axios";
 
 import {
   ArrowLeft,
+  KeyRound,
   Mail,
   Send,
 } from "lucide-react";
@@ -14,6 +15,8 @@ import ucgLogo from "../assets/ucg-logo.png";
 const ForgotPassword = () => {
 
   const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
 
   const [message, setMessage] = useState("");
 
@@ -27,8 +30,34 @@ const handleSubmit = async (e) => {
   try {
     const res = await api.post("/auth/forgot-password", { email });
     setMessage(res.data.message);
+    setCodeSent(true);
   } catch (error) {
     setMessage(error.response?.data?.message || "Greška pri slanju zahtjeva.");
+  }
+};
+
+const handleCodeSubmit = async (e) => {
+  e.preventDefault();
+
+  if (!code) {
+    return setMessage("Unesi kod iz emaila.");
+  }
+
+  try {
+    const res = await api.post("/auth/verify-reset-code", {
+      email,
+      code,
+    });
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    sessionStorage.setItem("token", res.data.token);
+    sessionStorage.setItem("user", JSON.stringify(res.data.user));
+    sessionStorage.setItem("passwordResetMode", "true");
+
+    window.location.href = "/profil?reset=1";
+  } catch (error) {
+    setMessage(error.response?.data?.message || "Kod nije validan.");
   }
 };
 
@@ -80,15 +109,17 @@ const handleSubmit = async (e) => {
 
           <p className="mt-2 text-[14px] leading-6 text-blue-50/90">
 
-            Unesi svoju email adresu i
-            poslaćemo ti link za reset lozinke.
+            {codeSent
+              ? "Unesi kod koji smo poslali na email."
+              : "Unesi svoju email adresu i poslaćemo ti kod za reset lozinke."}
 
           </p>
 
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={codeSent ? handleCodeSubmit : handleSubmit}>
 
+          {!codeSent ? (
           <div className="relative mb-4">
 
             <Mail
@@ -105,6 +136,26 @@ const handleSubmit = async (e) => {
             />
 
           </div>
+          ) : (
+          <div className="relative mb-4">
+
+            <KeyRound
+              className="absolute left-5 top-4 text-[#4da3ff]"
+              size={20}
+            />
+
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength="6"
+              placeholder="Unesi 6-cifreni kod"
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              className="h-[50px] w-full rounded-[14px] border border-[#4c8ddd]/45 bg-[#041b48]/80 pl-14 pr-5 text-[18px] font-black tracking-[0.2em] text-white outline-none placeholder:text-[15px] placeholder:font-normal placeholder:tracking-normal placeholder:text-blue-200/60 focus:border-[#6db5ff]"
+            />
+
+          </div>
+          )}
 
           {message && (
 
@@ -118,7 +169,7 @@ const handleSubmit = async (e) => {
 
           <button className="relative flex h-[52px] w-full items-center justify-center rounded-[14px] bg-gradient-to-r from-[#3b82ff] to-[#1672f6] text-[17px] font-black text-white shadow-[0_10px_30px_rgba(24,116,242,0.45)] transition duration-200 hover:scale-[1.01]">
 
-            POŠALJI LINK
+            {codeSent ? "POTVRDI KOD" : "POŠALJI KOD"}
 
             <Send
               className="absolute right-6"

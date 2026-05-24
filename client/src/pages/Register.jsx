@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -10,6 +10,7 @@ import {
   Lock,
   Mail,
   Percent,
+  Settings,
   Utensils,
   User,
 } from "lucide-react";
@@ -27,6 +28,7 @@ const dormOptions = [
 ];
 
 const facultyOptions = [
+  "Administracija",
   "Arhitektonski fakultet",
   "Biotehnički fakultet",
   "Ekonomski fakultet",
@@ -40,6 +42,14 @@ const facultyOptions = [
   "Prirodno-matematički fakultet",
 ];
 
+const adminOptions = [
+  { label: "Menza", value: "menza" },
+  { label: "Dom", value: "dom" },
+  { label: "Čitaona", value: "citaona" },
+  { label: "Krediti / Stipendije", value: "stipendije" },
+  { label: "Popusti", value: "popusti" },
+];
+
 const Register = () => {
   const [form, setForm] = useState({
     name: "",
@@ -48,22 +58,83 @@ const Register = () => {
     faculty: "",
     dorm: "",
     index_number: "",
+    admin_module: "",
   });
 
   const [message, setMessage] = useState("");
 
+  const isAdministration = form.faculty === "Administracija";
+  const isDomAdmin = isAdministration && form.admin_module === "dom";
+
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    setForm((prev) => {
+      const next = {
+        ...prev,
+        [name]: value,
+      };
+
+      if (name === "faculty" && value !== "Administracija") {
+        next.admin_module = "";
+      }
+
+      if (name === "faculty" && value === "Administracija") {
+        next.dorm = "";
+        next.index_number = "";
+      }
+
+      if (name === "admin_module" && value !== "dom") {
+        next.dorm = "";
+      }
+
+      return next;
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setMessage("");
+
+    if (!form.name || !form.email || !form.password || !form.faculty) {
+      return setMessage("Popuni sva obavezna polja.");
+    }
+
+    if (isAdministration && !form.admin_module) {
+      return setMessage("Izaberi tip administracije.");
+    }
+
+    if (!isAdministration && !form.dorm) {
+      return setMessage("Izaberi studentski dom.");
+    }
+
+    if (isDomAdmin && !form.dorm) {
+      return setMessage("Admin doma mora izabrati koji dom vodi.");
+    }
+
+    if (!isAdministration && !form.index_number) {
+      return setMessage("Unesi broj indeksa.");
+    }
 
     try {
-      const res = await api.post("/auth/register", {
-        ...form,
+      const payload = {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        faculty: form.faculty,
+        dorm: isAdministration
+          ? isDomAdmin
+            ? form.dorm
+            : "Administracija"
+          : form.dorm,
+        index_number: isAdministration
+          ? `ADMIN-${form.admin_module.toUpperCase()}`
+          : form.index_number,
         role: "student",
-      });
+        admin_module: isAdministration ? form.admin_module : null,
+      };
+
+      const res = await api.post("/auth/register", payload);
 
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
@@ -91,7 +162,7 @@ const Register = () => {
         </h1>
 
         <p className="mt-2 text-[14px] leading-5 text-blue-100/90">
-          Kreiraj studentski nalog
+          Kreiraj korisnički nalog
         </p>
       </div>
 
@@ -102,7 +173,7 @@ const Register = () => {
           </h2>
 
           <p className="mt-1 text-[14px] text-blue-50/90">
-            Unesi osnovne studentske podatke
+            Unesi osnovne podatke
           </p>
         </div>
 
@@ -119,7 +190,7 @@ const Register = () => {
             icon={Mail}
             name="email"
             type="email"
-            placeholder="studentski@email.com"
+            placeholder="email@example.com"
             value={form.email}
             onChange={handleChange}
           />
@@ -142,22 +213,42 @@ const Register = () => {
             options={facultyOptions}
           />
 
-          <SelectInput
-            icon={Home}
-            name="dorm"
-            value={form.dorm}
-            onChange={handleChange}
-            placeholder="Izaberi dom"
-            options={dormOptions}
-          />
+          {isAdministration && (
+            <SelectInput
+              icon={Settings}
+              name="admin_module"
+              value={form.admin_module}
+              onChange={handleChange}
+              placeholder="Izaberi tip administracije"
+              options={adminOptions}
+              objectOptions
+            />
+          )}
 
-          <Input
-            icon={Building2}
-            name="index_number"
-            placeholder="Broj indeksa (npr. 23/23)"
-            value={form.index_number}
-            onChange={handleChange}
-          />
+          {(!isAdministration || isDomAdmin) && (
+            <SelectInput
+              icon={Home}
+              name="dorm"
+              value={form.dorm}
+              onChange={handleChange}
+              placeholder={
+                isDomAdmin
+                  ? "Izaberi dom koji administriraš"
+                  : "Izaberi dom"
+              }
+              options={dormOptions}
+            />
+          )}
+
+          {!isAdministration && (
+            <Input
+              icon={Building2}
+              name="index_number"
+              placeholder="Broj indeksa (npr. 23/23)"
+              value={form.index_number}
+              onChange={handleChange}
+            />
+          )}
 
           {message && (
             <div className="mb-3 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
@@ -213,7 +304,15 @@ function Input({ icon: Icon, name, type = "text", placeholder, value, onChange }
   );
 }
 
-function SelectInput({ icon: Icon, name, value, onChange, options, placeholder }) {
+function SelectInput({
+  icon: Icon,
+  name,
+  value,
+  onChange,
+  options,
+  placeholder,
+  objectOptions = false,
+}) {
   return (
     <div className="relative mb-3">
       <Icon className="absolute left-5 top-4 text-[#4da3ff]" size={20} />
@@ -228,11 +327,16 @@ function SelectInput({ icon: Icon, name, value, onChange, options, placeholder }
           {placeholder}
         </option>
 
-        {options.map((option) => (
-          <option key={option} value={option} className="bg-[#041b48]">
-            {option}
-          </option>
-        ))}
+        {options.map((option) => {
+          const optionValue = objectOptions ? option.value : option;
+          const optionLabel = objectOptions ? option.label : option;
+
+          return (
+            <option key={optionValue} value={optionValue} className="bg-[#041b48]">
+              {optionLabel}
+            </option>
+          );
+        })}
       </select>
     </div>
   );
