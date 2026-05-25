@@ -1,11 +1,35 @@
 import { NavLink } from "react-router-dom";
+import { LogOut } from "lucide-react";
 import { navigation } from "../../data/navigation";
 
 function MobileNav() {
+  const user =
+    JSON.parse(localStorage.getItem("user")) ||
+    JSON.parse(sessionStorage.getItem("user"));
+
+  const visibleNavigation = navigation.filter((item) => {
+    if (!user) return false;
+    if (!item.roles?.includes(user.role)) return false;
+
+    if (user.role === "admin") {
+      return item.module === user.admin_module;
+    }
+
+    return true;
+  });
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+    window.location.href = "/login";
+  };
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white/95 px-2 py-2 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden">
-      <div className="grid grid-cols-5 gap-1">
-        {navigation.slice(0, 5).map((item) => {
+      <div className="flex min-w-0 gap-1 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {visibleNavigation.map((item) => {
           const Icon = item.icon;
 
           return (
@@ -13,7 +37,7 @@ function MobileNav() {
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center rounded-2xl px-2 py-2 text-[11px] font-bold transition ${
+                `flex min-w-[68px] shrink-0 flex-col items-center justify-center rounded-2xl px-2 py-2 text-[10px] font-bold transition sm:min-w-[78px] sm:text-[11px] ${
                   isActive
                     ? "bg-[#0b3a8f] text-white"
                     : "text-slate-500 hover:bg-slate-100"
@@ -21,10 +45,21 @@ function MobileNav() {
               }
             >
               <Icon size={20} />
-              <span className="mt-1">{item.title}</span>
+              <span className="mt-1 max-w-full truncate">{item.title}</span>
             </NavLink>
           );
         })}
+
+        {user && (
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex min-w-[68px] shrink-0 flex-col items-center justify-center rounded-2xl px-2 py-2 text-[10px] font-bold text-red-500 transition hover:bg-red-50 sm:min-w-[78px] sm:text-[11px]"
+          >
+            <LogOut size={20} />
+            <span className="mt-1 max-w-full truncate">Odjava</span>
+          </button>
+        )}
       </div>
     </nav>
   );

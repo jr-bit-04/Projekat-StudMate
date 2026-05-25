@@ -46,7 +46,7 @@ function Dashboard() {
   if (loading) {
     return (
       <MainLayout>
-        <div className="rounded-[28px] bg-white p-8 shadow-sm">
+        <div className="min-w-0 rounded-[28px] bg-white p-4 shadow-sm md:p-6 lg:p-8">
           <p className="font-bold text-slate-500">Učitavanje podataka...</p>
         </div>
       </MainLayout>
@@ -55,16 +55,16 @@ function Dashboard() {
 
   return (
     <MainLayout>
-      <section className="rounded-[32px] border border-slate-200 bg-white p-8 text-[#10243a] shadow-sm">
+      <section className="min-w-0 rounded-[32px] border border-slate-200 bg-white p-4 text-[#10243a] shadow-sm md:p-6 lg:p-8">
         <p className="mb-2 text-sm font-bold uppercase tracking-[0.2em] text-[#0b3a8f]">
           STUDMATE
         </p>
 
-        <h1 className="max-w-3xl text-[38px] font-black leading-tight tracking-[-0.05em]">
+        <h1 className="max-w-3xl break-words text-2xl font-black leading-tight tracking-[-0.05em] md:text-3xl lg:text-[38px]">
           Sve studentske informacije organizovane na jednom mjestu.
         </h1>
 
-        <p className="mt-4 max-w-2xl text-[15px] leading-7 text-slate-500">
+        <p className="mt-4 max-w-2xl break-words text-sm leading-7 text-slate-500 md:text-[15px]">
           Pregled najnovijih obavještenja, menze, stipendija i studentskih
           pogodnosti iz baze.
         </p>
@@ -76,7 +76,7 @@ function Dashboard() {
         </div>
       )}
 
-      <section className="mt-7 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+      <section className="mt-7 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
         <ModuleCard
           icon={House}
           title="Dom"
@@ -110,8 +110,8 @@ function Dashboard() {
         />
       </section>
 
-      <section className="mt-7 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-[30px] border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="mt-7 grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="rounded-[30px] border border-slate-200 bg-white p-4 md:p-6 shadow-sm">
           <SectionTitle
             title="Najnovija obavještenja"
             subtitle="Podaci iz tabele obavještenja"
@@ -126,7 +126,7 @@ function Dashboard() {
                   key={item.id}
                   className="rounded-2xl border border-slate-100 bg-[#f8fafc] p-4"
                 >
-                  <div className="mb-2 flex items-center justify-between gap-3">
+                  <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <span className="rounded-full bg-[#0b3a8f]/10 px-3 py-1 text-xs font-black text-[#0b3a8f]">
                       {item.modul}
                     </span>
@@ -147,7 +147,7 @@ function Dashboard() {
           </div>
         </div>
 
-        <div className="rounded-[30px] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-[30px] border border-slate-200 bg-white p-4 md:p-6 shadow-sm">
           <SectionTitle
             title="Današnji meni"
             subtitle="Aktivni obroci"
@@ -177,8 +177,8 @@ function Dashboard() {
         </div>
       </section>
 
-      <section className="mt-7 grid gap-6 xl:grid-cols-2">
-        <div className="rounded-[30px] border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="mt-7 grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <div className="rounded-[30px] border border-slate-200 bg-white p-4 md:p-6 shadow-sm">
           <SectionTitle
             title="Aktivni popusti"
             subtitle="Studentske pogodnosti"
@@ -191,17 +191,17 @@ function Dashboard() {
               data.discounts.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between rounded-2xl bg-[#f8fafc] p-4"
+                  className="flex flex-col gap-3 rounded-2xl bg-[#f8fafc] p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div>
-                    <p className="font-black text-[#10243a]">{item.naslov}</p>
+                  <div className="min-w-0">
+                    <p className="break-words font-black text-[#10243a]">{item.naslov}</p>
 
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-1 break-words text-sm text-slate-500">
                       {item.partner_naziv || "Partner nije unesen"}
                     </p>
                   </div>
 
-                  <span className="rounded-2xl bg-amber-50 px-4 py-2 text-sm font-black text-amber-700">
+                  <span className="self-start rounded-2xl bg-amber-50 px-4 py-2 text-sm font-black text-amber-700 sm:self-auto">
                     {item.vrijednost}
                   </span>
                 </div>
@@ -210,7 +210,7 @@ function Dashboard() {
           </div>
         </div>
 
-        <div className="rounded-[30px] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-[30px] border border-slate-200 bg-white p-4 md:p-6 shadow-sm">
           <SectionTitle
             title="Stipendije i krediti"
             subtitle="Aktivni konkursi"
@@ -223,12 +223,12 @@ function Dashboard() {
               data.scholarships.map((item) => (
                 <div key={item.id} className="rounded-2xl bg-[#f8fafc] p-4">
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-black text-[#10243a]">
+                    <div className="min-w-0">
+                      <p className="break-words font-black text-[#10243a]">
                         {item.naslov}
                       </p>
 
-                      <p className="mt-1 text-sm leading-6 text-slate-500">
+                      <p className="mt-1 break-words text-sm leading-6 text-slate-500">
                         {item.opis}
                       </p>
                     </div>
@@ -254,7 +254,7 @@ function ModuleCard({ icon: Icon, title, text, path, color }) {
   return (
     <Link
       to={path}
-      className="group rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+      className="group min-w-0 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
     >
       <div
         className={`mb-5 flex h-13 w-13 items-center justify-center rounded-2xl ${color}`}
@@ -262,9 +262,9 @@ function ModuleCard({ icon: Icon, title, text, path, color }) {
         <Icon size={26} />
       </div>
 
-      <h3 className="text-lg font-black text-[#10243a]">{title}</h3>
+      <h3 className="break-words text-lg font-black text-[#10243a]">{title}</h3>
 
-      <p className="mt-2 text-sm leading-6 text-slate-500">{text}</p>
+      <p className="mt-2 break-words text-sm leading-6 text-slate-500">{text}</p>
 
       <div className="mt-4 flex items-center gap-2 text-sm font-black text-[#0b3a8f]">
         Otvori
@@ -277,16 +277,16 @@ function ModuleCard({ icon: Icon, title, text, path, color }) {
 function SectionTitle({ title, subtitle }) {
   return (
     <div>
-      <h2 className="text-2xl font-black text-[#10243a]">{title}</h2>
-      <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
+      <h2 className="break-words text-xl font-black text-[#10243a] md:text-2xl">{title}</h2>
+      <p className="mt-1 break-words text-sm text-slate-500">{subtitle}</p>
     </div>
   );
 }
 
 function Empty({ text }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl bg-[#f8fafc] p-4 text-sm font-bold text-slate-500">
-      <AlertCircle size={18} />
+    <div className="flex items-start gap-3 rounded-2xl bg-[#f8fafc] p-4 text-sm font-bold text-slate-500">
+      <AlertCircle className="shrink-0" size={18} />
       {text}
     </div>
   );

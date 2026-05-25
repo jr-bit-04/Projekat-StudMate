@@ -126,24 +126,24 @@ function Popusti() {
 
   return (
     <MainLayout>
-      <section className="rounded-[22px] border border-[#dbe4f0] bg-white p-8 shadow-sm">
+      <section className="min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6 lg:p-8">
 
         <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#0b3a8f]">
           POPUSTI
         </p>
 
-        <h1 className="mt-3 text-[34px] font-bold tracking-[-0.03em] text-[#10243A]">
+        <h1 className="mt-3 break-words text-lg font-bold tracking-[-0.03em] text-[#10243A] md:text-2xl lg:text-[34px]">
           Studentske pogodnosti i partneri
         </h1>
 
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-2 break-words text-sm text-slate-500">
           Pregled svih aktivnih studentskih popusta i partnerskih pogodnosti.
         </p>
       </section>
 
-      <section className="mt-7 grid gap-7 lg:grid-cols-[1fr_320px]">
-        <div className="space-y-7">
-          <section className="rounded-[22px] border border-[#dbe4f0] bg-white p-6 shadow-sm">
+      <section className="mt-7 grid min-w-0 grid-cols-1 gap-7 lg:grid-cols-[1fr_320px]">
+        <div className="min-w-0 space-y-7">
+          <section className="min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-end">
               <div className="w-full lg:w-[220px]">
                 <label className="mb-2 block text-sm font-bold text-[#10243A]">
@@ -172,7 +172,7 @@ function Popusti() {
                 </select>
               </div>
 
-              <div className="relative flex-1">
+              <div className="relative min-w-0 flex-1">
                 <label className="mb-2 block text-sm font-bold text-[#10243A]">
                   Pretraga
                 </label>
@@ -230,8 +230,8 @@ function Popusti() {
           </section>
 
           {message && (
-            <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-600">
-              <AlertCircle size={18} />
+            <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-600">
+              <AlertCircle className="shrink-0" size={18} />
               {message}
             </div>
           )}
@@ -254,21 +254,21 @@ function Popusti() {
                 key={item.id}
                 type="button"
                 onClick={() => setSelected(item)}
-                className={`w-full rounded-[22px] border bg-white p-6 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-md ${
+                className={`w-full min-w-0 rounded-[22px] border bg-white p-4 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-md md:p-6 ${
                   isExpired(item.valid_until)
                     ? "border-red-200 opacity-70"
                     : "border-[#dbe4f0]"
                 }`}
               >
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="flex gap-4">
+                  <div className="flex min-w-0 gap-3 md:gap-4">
                     <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#0b3a8f]/10 text-[#0b3a8f]">
                       <Percent size={24} />
                     </div>
 
-                    <div>
+                    <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-xl font-bold text-[#10243A]">
+                        <h3 className="break-words text-lg font-bold text-[#10243A] md:text-xl">
                           {item.naslov}
                         </h3>
 
@@ -285,11 +285,11 @@ function Popusti() {
                         )}
                       </div>
 
-                      <p className="mt-2 text-sm font-semibold text-[#0b3a8f]">
+                      <p className="mt-2 break-words text-sm font-semibold text-[#0b3a8f]">
                         {item.partner_naziv}
                       </p>
 
-                      <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-500">
+                      <p className="mt-3 line-clamp-2 break-words text-sm leading-6 text-slate-500">
                         {item.opis}
                       </p>
 
@@ -316,7 +316,7 @@ function Popusti() {
                   </div>
 
                   <div className="shrink-0">
-                    <div className="rounded-2xl bg-[#F8FBFF] px-4 py-3 text-sm font-bold text-[#0b3a8f]">
+                    <div className="break-words rounded-2xl bg-[#F8FBFF] px-4 py-3 text-sm font-bold text-[#0b3a8f]">
                       {item.valid_until
                         ? `Važi do ${formatDate(
                             item.valid_until
@@ -330,8 +330,8 @@ function Popusti() {
           )}
         </div>
 
-        <aside className="space-y-5">
-          <div className="rounded-[22px] border border-[#dbe4f0] bg-white p-6 shadow-sm">
+        <aside className="min-w-0 space-y-5">
+          <div className="min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6">
             <div className="flex items-center gap-3">
               <Store className="text-[#0b3a8f]" />
 
@@ -347,15 +347,15 @@ function Popusti() {
                   href={partner.website || "#"}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center justify-between rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] p-4 transition hover:bg-[#0b3a8f]/10"
+                  className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] p-4 transition hover:bg-[#0b3a8f]/10"
                 >
-                  <div>
-                    <p className="font-bold text-[#10243A]">
+                  <div className="min-w-0">
+                    <p className="break-words font-bold text-[#10243A]">
                       {partner.naziv}
                     </p>
 
                     {partner.website && (
-                      <p className="mt-1 text-xs text-slate-400">
+                      <p className="mt-1 break-all text-xs text-slate-400">
                         {partner.website}
                       </p>
                     )}
@@ -363,7 +363,7 @@ function Popusti() {
 
                   <ExternalLink
                     size={18}
-                    className="text-[#0b3a8f]"
+                    className="shrink-0 text-[#0b3a8f]"
                   />
                 </a>
               ))}
@@ -374,7 +374,7 @@ function Popusti() {
 
       {selected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
-          <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[28px] bg-white p-8 shadow-2xl">
+          <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[24px] bg-white p-5 shadow-2xl md:rounded-[28px] md:p-8">
             <button
               type="button"
               onClick={() => setSelected(null)}
@@ -397,11 +397,11 @@ function Popusti() {
               )}
             </div>
 
-            <h2 className="mt-5 text-[34px] font-black tracking-[-0.03em] text-[#10243A]">
+            <h2 className="mt-5 break-words text-2xl font-black tracking-[-0.03em] text-[#10243A] md:text-[34px]">
               {selected.naslov}
             </h2>
 
-            <p className="mt-2 text-lg font-semibold text-[#0b3a8f]">
+            <p className="mt-2 break-words text-base font-semibold text-[#0b3a8f] md:text-lg">
               {selected.partner_naziv}
             </p>
 
@@ -442,7 +442,7 @@ function Popusti() {
                 Opis i uslovi korišćenja
               </p>
 
-              <p className="mt-4 text-[15px] leading-7 text-slate-600">
+              <p className="mt-4 break-words text-[15px] leading-7 text-slate-600">
                 {selected.opis}
               </p>
             </div>
@@ -455,8 +455,8 @@ function Popusti() {
 
 function Badge({ icon: Icon, children }) {
   return (
-    <div className="inline-flex items-center gap-2 rounded-full bg-[#0b3a8f]/10 px-3 py-2 text-xs font-bold text-[#0b3a8f]">
-      <Icon size={14} />
+    <div className="inline-flex max-w-full items-center gap-2 rounded-full bg-[#0b3a8f]/10 px-3 py-2 text-xs font-bold text-[#0b3a8f]">
+      <Icon className="shrink-0" size={14} />
       {children}
     </div>
   );
@@ -464,17 +464,17 @@ function Badge({ icon: Icon, children }) {
 
 function InfoRow({ icon: Icon, label, value }) {
   return (
-    <div className="flex items-start gap-4 rounded-2xl border border-[#dbe4f0] bg-white p-4">
+    <div className="flex min-w-0 items-start gap-4 rounded-2xl border border-[#dbe4f0] bg-white p-4">
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#0b3a8f]/10 text-[#0b3a8f]">
         <Icon size={18} />
       </div>
 
-      <div>
+      <div className="min-w-0">
         <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
           {label}
         </p>
 
-        <p className="mt-1 text-sm font-semibold text-[#10243A]">
+        <p className="mt-1 break-words text-sm font-semibold text-[#10243A]">
           {value}
         </p>
       </div>

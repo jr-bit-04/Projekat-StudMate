@@ -72,7 +72,7 @@ function Menza() {
   if (loading) {
     return (
       <MainLayout>
-        <div className="rounded-[22px] border border-[#dbe4f0] bg-white p-8 shadow-sm">
+        <div className="rounded-[22px] border border-[#dbe4f0] bg-white p-4 md:p-6 lg:p-8 shadow-sm">
           <p className="font-medium text-slate-500">
             Učitavanje menze...
           </p>
@@ -83,12 +83,12 @@ function Menza() {
 
   return (
     <MainLayout>
-      <section className="rounded-[22px] border border-[#dbe4f0] bg-white p-8 shadow-sm">
+      <section className="min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6 lg:p-8">
         <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#0b3a8f]">
           MENZA
         </p>
 
-        <h1 className="mt-3 text-[34px] font-bold tracking-[-0.03em] text-[#10243A]">
+        <h1 className="mt-3 text-lg md:text-2xl lg:text-[34px] font-bold tracking-[-0.03em] text-[#10243A]">
           Meni i studentski bonovi
         </h1>
 
@@ -98,26 +98,26 @@ function Menza() {
       </section>
 
       {message && (
-        <div className="mt-6 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-600">
-          <AlertCircle size={18} />
+        <div className="mt-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-600">
+          <AlertCircle className="shrink-0" size={18} />
           {message}
         </div>
       )}
 
-      <section className="mt-7 grid gap-5 md:grid-cols-3">
+      <section className="mt-7 grid grid-cols-1 gap-5 md:grid-cols-3">
         {meals.map((meal) => {
           const Icon = meal.icon;
 
           return (
             <div
               key={meal.key}
-              className="rounded-[22px] border border-[#dbe4f0] bg-white p-6 shadow-sm"
+              className="min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6"
             >
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0b3a8f]/10 text-[#0b3a8f]">
                 <Icon size={24} />
               </div>
 
-              <h2 className="text-2xl font-bold text-[#10243A]">
+              <h2 className="break-words text-2xl font-bold text-[#10243A]">
                 {meal.label}
               </h2>
 
@@ -145,14 +145,14 @@ function Menza() {
         })}
       </section>
 
-      <section className="mt-7 rounded-[22px] border border-[#dbe4f0] bg-white p-6 shadow-sm">
+      <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
+          <div className="min-w-0">
             <h2 className="text-2xl font-bold text-[#10243A]">
               Napomena
             </h2>
 
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 break-words text-sm text-slate-500">
               Bonovi ističu 10-og u mjesecu.
             </p>
           </div>
@@ -160,7 +160,7 @@ function Menza() {
           <button
             type="button"
             onClick={() => setShowNotices(!showNotices)}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#0b3a8f] px-5 text-sm font-semibold text-white transition hover:bg-[#082d70]"
+            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#0b3a8f] px-5 text-sm font-semibold text-white transition hover:bg-[#082d70] sm:w-auto"
           >
             <Bell size={18} />
 
@@ -182,7 +182,7 @@ function Menza() {
                   key={item.id}
                   className="rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] p-4"
                 >
-                  <div className="mb-2 flex items-center justify-between gap-3">
+                  <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <span className="rounded-full bg-[#0b3a8f]/10 px-3 py-1 text-xs font-bold text-[#0b3a8f]">
                       {item.kategorija || "Menza"}
                     </span>
@@ -206,8 +206,8 @@ function Menza() {
         )}
       </section>
 
-      <section className="mt-7 rounded-[22px] border border-[#dbe4f0] bg-white p-6 shadow-sm">
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-7">
+      <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 md:gap-4 xl:grid-cols-7">
           {weekDays.map((day) => {
             const isPast =
               new Date(day.iso) < startOfToday();
@@ -219,7 +219,7 @@ function Menza() {
                 key={day.iso}
                 type="button"
                 onClick={() => setSelectedDate(day.iso)}
-                className={`rounded-[18px] border px-5 py-6 text-center transition ${
+                className={`rounded-[18px] border px-2 py-4 text-center transition md:px-5 md:py-6 ${
                   active
                     ? "border-[#0b3a8f] bg-[#0b3a8f] text-white"
                     : isPast
@@ -227,11 +227,11 @@ function Menza() {
                     : "border-[#dbe4f0] bg-[#F8FBFF] text-[#10243A] hover:bg-white"
                 }`}
               >
-                <p className="text-lg font-bold">
+                <p className="break-words text-sm font-bold md:text-lg">
                   {day.name}
                 </p>
 
-                <p className="mt-2 text-sm opacity-80">
+                <p className="mt-2 text-xs opacity-80 md:text-sm">
                   {formatDate(day.iso)}
                 </p>
 
@@ -245,13 +245,13 @@ function Menza() {
           })}
         </div>
 
-        <div className="mt-7 inline-flex rounded-[18px] border border-[#dbe4f0] bg-[#F8FBFF] p-2">
+        <div className="mt-7 grid w-full grid-cols-3 gap-1 rounded-[18px] border border-[#dbe4f0] bg-[#F8FBFF] p-1 sm:inline-grid sm:w-auto sm:p-2">
           {meals.map((meal) => (
             <button
               key={meal.key}
               type="button"
               onClick={() => setSelectedMeal(meal.key)}
-              className={`rounded-[14px] px-8 py-4 text-sm font-bold transition ${
+              className={`rounded-[14px] px-2 py-3 text-xs font-bold transition sm:px-8 sm:py-4 sm:text-sm ${
                 selectedMeal === meal.key
                   ? "bg-[#0b3a8f] text-white"
                   : "text-slate-600 hover:bg-white"
@@ -263,8 +263,8 @@ function Menza() {
         </div>
 
         <div className="mt-6 overflow-hidden rounded-[22px] border border-[#dbe4f0] bg-white">
-          <div className="border-b border-[#dbe4f0] bg-[#F8FBFF] px-7 py-7">
-            <h2 className="text-2xl font-bold text-[#10243A]">
+          <div className="border-b border-[#dbe4f0] bg-[#F8FBFF] px-4 py-5 md:px-7 md:py-7">
+            <h2 className="text-xl font-bold text-[#10243A] md:text-2xl">
               {getMealLabel(selectedMeal)}
             </h2>
 
@@ -274,14 +274,14 @@ function Menza() {
           </div>
 
           {selectedMeal === "dorucak" ? (
-            <div className="p-6">
+            <div className="p-4 md:p-6">
               <div className="overflow-hidden rounded-2xl border border-[#dbe4f0]">
-                <div className="grid grid-cols-[1fr_180px] bg-[#F8FBFF]">
+                <div className="grid grid-cols-1 bg-[#F8FBFF] md:grid-cols-[1fr_180px]">
                   <div className="px-5 py-4 text-sm font-bold uppercase tracking-[0.12em] text-[#0b3a8f]">
                     SENDVIČI, PECIVA, KOLAČI
                   </div>
 
-                  <div className="border-l border-[#dbe4f0] px-5 py-4 text-center text-sm font-bold uppercase tracking-[0.12em] text-[#0b3a8f]">
+                  <div className="hidden border-l border-[#dbe4f0] px-5 py-4 text-center text-sm font-bold uppercase tracking-[0.12em] text-[#0b3a8f] md:block">
                     BONOVI / CIJENA
                   </div>
                 </div>
@@ -295,13 +295,13 @@ function Menza() {
                     (item, index) => (
                       <div
                         key={index}
-                        className="grid grid-cols-[1fr_180px] border-t border-[#dbe4f0]"
+                        className="grid grid-cols-1 border-t border-[#dbe4f0] md:grid-cols-[1fr_180px]"
                       >
-                        <div className="px-5 py-5 text-sm font-semibold text-[#10243A]">
+                        <div className="break-words px-4 py-4 text-sm font-semibold text-[#10243A] md:px-5 md:py-5">
                           {item.naziv}
                         </div>
 
-                        <div className="flex items-center justify-center gap-2 border-l border-[#dbe4f0] px-5 py-5">
+                        <div className="flex flex-wrap items-center justify-start gap-2 border-t border-[#dbe4f0] px-4 py-4 md:justify-center md:border-l md:border-t-0 md:px-5 md:py-5">
                           <div className="flex items-center gap-1 rounded-full bg-[#0b3a8f]/10 px-3 py-1">
                             <Ticket size={16} />
 
@@ -348,7 +348,7 @@ function Menza() {
                 />
               </div>
 
-              <div className="border-t border-[#dbe4f0] bg-[#F8FBFF] px-7 py-5 text-sm font-semibold text-slate-600">
+              <div className="border-t border-[#dbe4f0] bg-[#F8FBFF] px-4 py-5 text-sm font-semibold text-slate-600 md:px-7">
                 Glavno jelo + prilog + salata + dodatno = 1 bon.
               </div>
             </>
@@ -361,7 +361,7 @@ function Menza() {
 
 function FoodColumn({ title, items }) {
   return (
-    <div className="border-t border-[#dbe4f0] p-6 md:border-r md:border-t-0 last:border-r-0">
+    <div className="min-w-0 border-t border-[#dbe4f0] p-4 md:border-r md:border-t-0 md:p-6 last:border-r-0">
       <h3 className="mb-5 text-sm font-bold uppercase tracking-[0.12em] text-[#0b3a8f]">
         {title}
       </h3>
@@ -375,7 +375,7 @@ function FoodColumn({ title, items }) {
           items.map((item, index) => (
             <div
               key={index}
-              className="rounded-xl border border-[#dbe4f0] bg-[#F8FBFF] px-4 py-4 text-sm font-semibold text-[#10243A]"
+              className="rounded-xl border border-[#dbe4f0] bg-[#F8FBFF] px-4 py-4 text-sm font-semibold text-[#10243A] break-words"
             >
               {item}
             </div>

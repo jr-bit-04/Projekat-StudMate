@@ -93,21 +93,21 @@ function Profil() {
 
   return (
     <MainLayout>
-      <section className="rounded-[22px] border border-[#dbe4f0] bg-white p-8 shadow-sm">
+      <section className="min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6 lg:p-8">
         <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#0b3a8f]">
           PROFIL KORISNIKA
         </p>
 
-        <h1 className="mt-3 text-[34px] font-bold text-[#10243A]">
+        <h1 className="mt-3 break-words text-lg font-bold text-[#10243A] md:text-2xl lg:text-[34px]">
           Moj profil
         </h1>
 
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-2 break-words text-sm text-slate-500">
           Pregled osnovnih informacija i promjena lozinke.
         </p>
       </section>
 
-      <section className="mt-7 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm">
+      <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6">
         <div className="overflow-hidden rounded-2xl border border-[#dbe4f0]">
           {rows.map((row, index) => {
             const Icon = row.icon;
@@ -115,20 +115,20 @@ function Profil() {
             return (
               <div
                 key={row.label}
-                className={`flex items-center gap-4 bg-white px-6 py-5 ${
+                className={`flex min-w-0 items-center gap-3 bg-white px-4 py-5 md:gap-4 md:px-6 ${
                   index !== rows.length - 1 ? "border-b border-[#dbe4f0]" : ""
                 }`}
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0b3a8f]/10 text-[#0b3a8f]">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0b3a8f]/10 text-[#0b3a8f]">
                   <Icon size={22} />
                 </div>
 
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
                     {row.label}
                   </p>
 
-                  <p className="mt-1 text-lg font-bold text-[#10243A]">
+                  <p className="mt-1 break-words text-base font-bold text-[#10243A] md:text-lg">
                     {row.value}
                   </p>
                 </div>
@@ -138,18 +138,18 @@ function Profil() {
         </div>
       </section>
 
-      <section className="mt-7 rounded-[22px] border border-[#dbe4f0] bg-white p-8 shadow-sm">
+      <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6 lg:p-8">
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0b3a8f]/10 text-[#0b3a8f]">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0b3a8f]/10 text-[#0b3a8f]">
             <KeyRound size={22} />
           </div>
 
-          <div>
-            <h2 className="text-2xl font-bold text-[#10243A]">
+          <div className="min-w-0">
+            <h2 className="text-xl md:text-2xl font-bold text-[#10243A]">
               Promjena lozinke
             </h2>
 
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 break-words text-sm text-slate-500">
               {isResetMode
                 ? "Unesi novu lozinku za svoj nalog."
                 : "Unesi trenutnu i novu lozinku."}
@@ -157,7 +157,7 @@ function Profil() {
           </div>
         </div>
 
-        <form onSubmit={changePassword} className="grid gap-4 md:grid-cols-3">
+        <form onSubmit={changePassword} className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {!isResetMode && (
             <PasswordInput
               placeholder="Trenutna lozinka"
@@ -178,7 +178,7 @@ function Profil() {
             onChange={(value) => setForm({ ...form, confirmPassword: value })}
           />
 
-          <button className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#0b3a8f] px-6 text-sm font-bold text-white hover:bg-[#082d70] md:w-fit">
+          <button className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#0b3a8f] px-6 text-sm font-bold text-white hover:bg-[#082d70] md:w-fit">
             <Save size={18} />
             Sačuvaj lozinku
           </button>
@@ -201,7 +201,7 @@ function PasswordInput({ placeholder, value, onChange }) {
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="h-12 rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] px-4 text-sm font-semibold outline-none focus:border-[#0b3a8f]"
+      className="h-12 w-full min-w-0 rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] px-4 text-sm font-semibold outline-none focus:border-[#0b3a8f]"
     />
   );
 }

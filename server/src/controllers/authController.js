@@ -44,11 +44,11 @@ const createMailTransporter = () => {
   const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
 
   if (!user || !pass) {
-    throw new Error("SMTP korisnik ili lozinka nijesu podeÅ¡eni.");
+    throw new Error("SMTP korisnik ili lozinka nijesu podešeni.");
   }
 
   if (!process.env.SMTP_SERVICE && !process.env.SMTP_HOST) {
-    throw new Error("SMTP servis ili host nijesu podeÅ¡eni.");
+    throw new Error("SMTP servis ili host nijesu podešeni.");
   }
 
   const transportConfig = process.env.SMTP_SERVICE
@@ -143,13 +143,13 @@ const register = async (req, res) => {
     const token = createToken(user.id, user.role);
 
     res.status(201).json({
-      message: "Registracija uspjeÅ¡na.",
+      message: "Registracija uspješna.",
       user,
       token,
     });
   } catch (error) {
     res.status(500).json({
-      message: "GreÅ¡ka pri registraciji.",
+      message: "Greška pri registraciji.",
       error: error.message,
     });
   }
@@ -185,7 +185,7 @@ const login = async (req, res) => {
 
     if (result.rows.length === 0) {
       return res.status(401).json({
-        message: "PogreÅ¡an email ili lozinka.",
+        message: "Pogrešan email ili lozinka.",
       });
     }
 
@@ -198,7 +198,7 @@ const login = async (req, res) => {
 
     if (!isPasswordCorrect) {
       return res.status(401).json({
-        message: "PogreÅ¡an email ili lozinka.",
+        message: "Pogrešan email ili lozinka.",
       });
     }
 
@@ -217,13 +217,13 @@ const login = async (req, res) => {
     const token = createToken(user.id, user.role);
 
     res.json({
-      message: "Prijava uspjeÅ¡na.",
+      message: "Prijava uspješna.",
       user,
       token,
     });
   } catch (error) {
     res.status(500).json({
-      message: "GreÅ¡ka pri prijavi.",
+      message: "Greška pri prijavi.",
       error: error.message,
     });
   }
@@ -285,7 +285,7 @@ const forgotPassword = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
-      message: "GreÅ¡ka pri slanju emaila.",
+      message: "Greška pri slanju emaila.",
       error: error.message,
     });
   }
@@ -434,11 +434,11 @@ const changePassword = async (req, res) => {
     }
 
     res.json({
-      message: "Lozinka je uspjeÅ¡no promijenjena.",
+      message: "Lozinka je uspješno promijenjena.",
     });
   } catch (error) {
     res.status(500).json({
-      message: "GreÅ¡ka pri promjeni lozinke.",
+      message: "Greška pri promjeni lozinke.",
       error: error.message,
     });
   }

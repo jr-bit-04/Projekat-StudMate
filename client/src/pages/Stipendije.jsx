@@ -53,23 +53,23 @@ function Stipendije() {
 
   return (
     <MainLayout>
-      <section className="rounded-[22px] border border-[#dbe4f0] bg-white p-8 shadow-sm">
+      <section className="min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6 lg:p-8">
         <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#0b3a8f]">
           STIPENDIJE I KREDITI
         </p>
 
-        <h1 className="mt-3 text-[34px] font-bold text-[#10243A]">
+        <h1 className="mt-3 break-words text-lg font-bold text-[#10243A] md:text-2xl lg:text-[34px]">
           Aktivni konkursi
         </h1>
 
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-2 break-words text-sm text-slate-500">
           Pregled aktivnih stipendija i studentskih kredita.
         </p>
       </section>
 
-      <section className="mt-7 rounded-[22px] border border-[#dbe4f0] bg-white p-6 shadow-sm">
+      <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6">
         <div className="flex flex-col gap-4 lg:flex-row">
-          <div className="relative flex-1">
+          <div className="relative min-w-0 flex-1">
             <Search
               size={18}
               className="absolute left-4 top-1/2 -translate-y-1/2 text-[#0b3a8f]"
@@ -86,7 +86,7 @@ function Stipendije() {
           <select
             value={tip}
             onChange={(e) => setTip(e.target.value)}
-            className="h-12 rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] px-4 text-sm font-semibold outline-none"
+            className="h-12 w-full rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] px-4 text-sm font-semibold outline-none lg:w-auto"
           >
             <option value="all">Sve</option>
             <option value="stipendija">Stipendije</option>
@@ -99,26 +99,26 @@ function Stipendije() {
         {filtered.map((item) => (
           <article
             key={item.id}
-            className="rounded-[22px] border border-[#dbe4f0] bg-white p-6 shadow-sm"
+            className="min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6"
           >
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-              <div className="flex gap-4">
+              <div className="flex min-w-0 gap-3 md:gap-4">
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#0b3a8f]/10 text-[#0b3a8f]">
                   <GraduationCap size={24} />
                 </div>
 
-                <div>
+                <div className="min-w-0">
                   <div className="flex flex-wrap gap-2">
                     <span className="rounded-full bg-[#0b3a8f]/10 px-3 py-1 text-xs font-bold text-[#0b3a8f]">
                       {item.tip}
                     </span>
                   </div>
 
-                  <h2 className="mt-4 text-2xl font-bold text-[#10243A]">
+                  <h2 className="mt-4 break-words text-xl font-bold text-[#10243A] md:text-2xl">
                     {item.naslov}
                   </h2>
 
-                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                  <p className="mt-2 break-words text-sm leading-6 text-slate-500">
                     {item.opis}
                   </p>
 
@@ -138,7 +138,7 @@ function Stipendije() {
                   href={item.link}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex h-11 items-center gap-2 rounded-2xl bg-[#0b3a8f] px-5 text-sm font-bold text-white"
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#0b3a8f] px-5 text-sm font-bold text-white sm:w-auto"
                 >
                   <ExternalLink size={16} />
                   Otvori konkurs
@@ -154,9 +154,9 @@ function Stipendije() {
 
 function Info({ icon: Icon, text }) {
   return (
-    <div className="flex items-center gap-2">
-      <Icon size={16} className="text-[#0b3a8f]" />
-      <span>{text}</span>
+    <div className="flex min-w-0 items-center gap-2">
+      <Icon size={16} className="shrink-0 text-[#0b3a8f]" />
+      <span className="min-w-0 break-words">{text}</span>
     </div>
   );
 }

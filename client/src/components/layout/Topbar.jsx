@@ -8,7 +8,7 @@ function Topbar() {
   return (
     <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
       <div>
-        <h1 className="text-[28px] font-black tracking-[-0.04em] text-[#10243a]">
+        <h1 className="text-xl md:text-2xl lg:text-[28px] font-black tracking-[-0.04em] text-[#10243a]">
           Dobrodošla, {user?.name?.split(" ")[0] || "Student"}
         </h1>
 

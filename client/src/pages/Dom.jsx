@@ -68,7 +68,7 @@ function Dom() {
   if (loading) {
     return (
       <MainLayout>
-        <div className="rounded-[22px] border border-[#dbe4f0] bg-white p-8 shadow-sm">
+        <div className="rounded-[22px] border border-[#dbe4f0] bg-white p-4 md:p-6 lg:p-8 shadow-sm">
           <p className="font-medium text-slate-500">
             Učitavanje doma...
           </p>
@@ -79,13 +79,13 @@ function Dom() {
 
   return (
     <MainLayout>
-      <section className="rounded-[22px] border border-[#dbe4f0] bg-white p-8 shadow-sm">
+      <section className="min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6 lg:p-8">
 
         <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#0b3a8f]">
           STUDENTSKI DOM
         </p>
 
-        <h1 className="mt-3 text-[34px] font-bold tracking-[-0.03em] text-[#10243A]">
+        <h1 className="mt-3 text-lg md:text-2xl lg:text-[34px] font-bold tracking-[-0.03em] text-[#10243A]">
           Mjesečne obaveze
         </h1>
 
@@ -95,20 +95,20 @@ function Dom() {
       </section>
 
       {message && (
-        <div className="mt-6 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-600">
-          <AlertCircle size={18} />
+        <div className="mt-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-600">
+          <AlertCircle className="shrink-0" size={18} />
           {message}
         </div>
       )}
 
-      <section className="mt-7 rounded-[22px] border border-[#dbe4f0] bg-white p-6 shadow-sm">
+      <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
+          <div className="min-w-0">
             <h2 className="text-2xl font-bold text-[#10243A]">
               Obavještenja doma
             </h2>
 
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 break-words text-sm text-slate-500">
               Pregled najnovijih informacija vezanih za studentski dom.
             </p>
           </div>
@@ -118,7 +118,7 @@ function Dom() {
             onClick={() =>
               setShowNotices(!showNotices)
             }
-            className="inline-flex h-12 items-center justify-center rounded-2xl bg-[#0b3a8f] px-5 text-sm font-bold text-white transition hover:bg-[#082d70]"
+            className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[#0b3a8f] px-5 text-sm font-bold text-white transition hover:bg-[#082d70] sm:w-auto"
           >
             {showNotices
               ? "Sakrij obavještenja"
@@ -138,7 +138,7 @@ function Dom() {
                   key={item.id}
                   className="rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] p-4"
                 >
-                  <div className="mb-2 flex items-center justify-between gap-3">
+                  <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <span className="rounded-full bg-[#0b3a8f]/10 px-3 py-1 text-xs font-bold text-[#0b3a8f]">
                       {item.kategorija || "Dom"}
                     </span>
@@ -162,7 +162,7 @@ function Dom() {
         )}
       </section>
 
-      <section className="mt-7 grid gap-5 md:grid-cols-2">
+      <section className="mt-7 grid grid-cols-1 gap-5 md:grid-cols-2">
         <InfoCard
           icon={Home}
           title="Studentski dom"
@@ -178,12 +178,12 @@ function Dom() {
         />
       </section>
 
-      <section className="mt-7 rounded-[22px] border border-[#dbe4f0] bg-white p-6 shadow-sm">
-        <h2 className="text-2xl font-bold text-[#10243A]">
+      <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6">
+        <h2 className="text-xl md:text-2xl font-bold text-[#10243A]">
           Pregled po mjesecima
         </h2>
 
-        <div className="mt-5 grid gap-4 md:grid-cols-3">
+        <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
           <Legend
             color="bg-red-500"
             text="Neplaćeno"
@@ -200,7 +200,7 @@ function Dom() {
           />
         </div>
 
-        <div className="mt-7 grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+        <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 xl:grid-cols-6">
           {months.map((month) => {
             const obligation =
               obligations.find(
@@ -222,7 +222,7 @@ function Dom() {
                 onClick={() =>
                   setSelectedMonth(month)
                 }
-                className={`relative min-h-[115px] overflow-hidden rounded-[20px] border p-5 text-left font-bold transition hover:-translate-y-1 hover:shadow-md ${
+                className={`relative min-h-[96px] overflow-hidden rounded-[20px] border p-4 text-left font-bold transition hover:-translate-y-1 hover:shadow-md md:min-h-[115px] md:p-5 ${
                   getMonthCardClass(status)
                 } ${
                   active
@@ -230,7 +230,7 @@ function Dom() {
                     : ""
                 }`}
               >
-                <span className="relative z-10 text-lg">
+                <span className="relative z-10 break-words text-base md:text-lg">
                   {month}
                 </span>
               </button>
@@ -239,8 +239,8 @@ function Dom() {
         </div>
       </section>
 
-      <section className="mt-7 rounded-[22px] border border-[#dbe4f0] bg-white p-6 shadow-sm">
-        <h2 className="text-2xl font-bold text-[#10243A]">
+      <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6">
+        <h2 className="text-xl md:text-2xl font-bold text-[#10243A]">
           {selectedMonth}
         </h2>
 
@@ -308,7 +308,7 @@ function InfoCard({
   value,
 }) {
   return (
-    <div className="rounded-[22px] border border-[#dbe4f0] bg-white p-6 shadow-sm">
+    <div className="min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6">
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0b3a8f]/10 text-[#0b3a8f]">
         <Icon size={24} />
       </div>
@@ -317,7 +317,7 @@ function InfoCard({
         {title}
       </p>
 
-      <p className="mt-2 text-2xl font-bold text-[#10243A]">
+      <p className="mt-2 break-words text-xl font-bold text-[#10243A] md:text-2xl">
         {value || "Nije dostupno"}
       </p>
     </div>
@@ -329,12 +329,12 @@ function Legend({
   text,
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] px-4 py-4">
+    <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] px-4 py-4">
       <span
         className={`h-4 w-4 rounded-full ${color}`}
       />
 
-      <span className="font-semibold text-[#10243A]">
+      <span className="min-w-0 break-words font-semibold text-[#10243A]">
         {text}
       </span>
     </div>
@@ -346,12 +346,12 @@ function DetailRow({
   value,
 }) {
   return (
-    <div className="flex items-center justify-between border-b border-[#dbe4f0] bg-white px-5 py-4 last:border-b-0">
+    <div className="flex flex-col items-start gap-1 border-b border-[#dbe4f0] bg-white px-4 py-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:px-5">
       <span className="text-sm font-semibold text-slate-500">
         {label}
       </span>
 
-      <strong className="text-right text-sm font-bold text-[#10243A]">
+      <strong className="break-words text-left text-sm font-bold text-[#10243A] sm:text-right">
         {value || "Nije dostupno"}
       </strong>
     </div>

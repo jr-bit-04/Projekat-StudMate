@@ -15,10 +15,10 @@ function MainLayout({ children }) {
 
       <div className="fixed inset-0 bg-[#0b3a8f]/15 backdrop-blur-[2px]" />
 
-      <div className="relative z-10 mx-auto flex max-w-[1700px]">
+      <div className="relative z-10 mx-auto flex w-full min-w-0 max-w-[1700px]">
         <Sidebar />
 
-        <main className="flex-1 px-4 py-5 md:px-8 md:py-7">
+        <main className="w-full min-w-0 flex-1 px-3 py-4 sm:px-4 md:px-8 md:py-7">
           {children}
         </main>
 
