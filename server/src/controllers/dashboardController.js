@@ -78,8 +78,14 @@ const getDashboardData = async (req, res) => {
              dorucak_stavke, glavna_jela, prilozi, salate, dodatno
       FROM meni
       WHERE aktivan = true
-      ORDER BY datum DESC
-      LIMIT 6
+      AND datum = CURRENT_DATE
+      ORDER BY
+      CASE tip_obroka
+        WHEN 'dorucak' THEN 1
+        WHEN 'rucak' THEN 2
+        WHEN 'vecera' THEN 3
+        ELSE 4
+      END
     `);
 
     res.json({
