@@ -180,6 +180,13 @@ function Login() {
           <Feature icon={Info} label="Info" />
         </div>
       </section>
+
+      <p className="mt-5 text-center text-[15px] text-blue-100/80">
+        Partner ste?{" "}
+        <Link to="/partner-popusti" className="font-bold text-[#4da3ff]">
+          Partnerski portal
+        </Link>
+      </p>
     </AuthLayout>
   );
 }
