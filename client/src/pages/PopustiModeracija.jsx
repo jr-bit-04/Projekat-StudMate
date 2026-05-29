@@ -7,6 +7,8 @@ import MainLayout from "../components/layout/MainLayout";
 function PopustiModeracija() {
   const [items, setItems] = useState([]);
   const [message, setMessage] = useState("");
+  const [sourceFilter, setSourceFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
     fetchModeration();
@@ -33,6 +35,12 @@ function PopustiModeracija() {
     fetchModeration();
   };
 
+  const filteredItems = items.filter((item) => {
+    const matchSource = sourceFilter === "all" || item.source === sourceFilter;
+    const matchStatus = statusFilter === "all" || item.status === statusFilter;
+    return matchSource && matchStatus;
+  });
+
   return (
     <MainLayout>
       <section className="rounded-[22px] border border-[#dbe4f0] bg-white p-8 shadow-sm">
@@ -50,6 +58,33 @@ function PopustiModeracija() {
         </p>
       </section>
 
+      <section className="mt-7 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6">
+        <div className="flex flex-col gap-4">
+          <FilterGroup
+            label="Tip"
+            value={sourceFilter}
+            onChange={setSourceFilter}
+            options={[
+              { value: "all", label: "Svi" },
+              { value: "portal", label: "Portal" },
+              { value: "api", label: "API" },
+            ]}
+          />
+
+          <FilterGroup
+            label="Status"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={[
+              { value: "all", label: "Svi" },
+              { value: "pending", label: "Na čekanju" },
+              { value: "approved", label: "Odobreni" },
+              { value: "rejected", label: "Odbijeni" },
+            ]}
+          />
+        </div>
+      </section>
+
       {message && (
         <div className="mt-6 rounded-2xl bg-[#0b3a8f]/10 p-4 text-sm font-bold text-[#0b3a8f]">
           {message}
@@ -57,12 +92,12 @@ function PopustiModeracija() {
       )}
 
       <section className="mt-7 grid gap-5">
-        {items.length === 0 ? (
+        {filteredItems.length === 0 ? (
           <div className="rounded-[22px] border border-[#dbe4f0] bg-white p-8 text-sm text-slate-500 shadow-sm">
-            Nema promocija.
+            Nema promocija za izabrane filtere.
           </div>
         ) : (
-          items.map((item) => (
+          filteredItems.map((item) => (
             <article
               key={item.id}
               className="rounded-[22px] border border-[#dbe4f0] bg-white p-6 shadow-sm"
@@ -126,6 +161,29 @@ function PopustiModeracija() {
         )}
       </section>
     </MainLayout>
+  );
+}
+
+function FilterGroup({ label, value, onChange, options }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="mr-1 text-sm font-bold text-[#10243A]">{label}:</span>
+
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className={`rounded-full px-4 py-2 text-sm font-bold transition ${
+            value === opt.value
+              ? "bg-[#0b3a8f] text-white"
+              : "bg-[#0b3a8f]/10 text-[#0b3a8f] hover:bg-[#0b3a8f]/20"
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
   );
 }
 

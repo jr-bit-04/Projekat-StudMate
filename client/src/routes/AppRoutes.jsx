@@ -24,6 +24,7 @@ import PartnerPopusti from "../pages/PartnerPopusti";
 import PopustiModeracija from "../pages/PopustiModeracija";
 import AdminStipendije from "../pages/AdminStipendije";
 import AdminKorisnici from "../pages/AdminKorisnici";
+import AdminApiPartneri from "../pages/AdminApiPartneri";
 
 
 function getUser() {
@@ -79,6 +80,16 @@ function AppRoutes() {
             <ProtectedRoute>
               <AdminModuleRoute module="popusti">
                 <PopustiModeracija />
+              </AdminModuleRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/popusti/api-partneri"
+          element={
+            <ProtectedRoute>
+              <AdminModuleRoute module="popusti">
+                <AdminApiPartneri />
               </AdminModuleRoute>
             </ProtectedRoute>
           }

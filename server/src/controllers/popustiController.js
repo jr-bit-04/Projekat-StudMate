@@ -311,6 +311,24 @@ const createApiPromotion = async (req, res) => {
   }
 };
 
+const getApiPartners = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, naziv, website, logo_url, kontakt_email, api_key, status, created_at
+      FROM partner
+      WHERE tip = 'api'
+      ORDER BY created_at DESC
+    `);
+
+    res.json({ partneri: result.rows });
+  } catch (error) {
+    res.status(500).json({
+      message: "Greška pri učitavanju API partnera.",
+      error: error.message,
+    });
+  }
+};
+
 const createApiPartner = async (req, res) => {
   try {
     const { naziv, website, logo_url, kontakt_email } = req.body;
@@ -352,4 +370,5 @@ module.exports = {
   createPartnerPortalSubmission,
   createApiPromotion,
   createApiPartner,
+  getApiPartners,
 };

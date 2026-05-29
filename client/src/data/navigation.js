@@ -1,7 +1,7 @@
 ﻿import {
   LayoutDashboard, House, UtensilsCrossed, BookOpen,
   Percent, GraduationCap, User, Bell,
-  Building2, Ticket, ShieldCheck,
+  Building2, Ticket, ShieldCheck, KeyRound,
 } from "lucide-react";
 
 export const navigation = [
@@ -27,6 +27,7 @@ export const navigation = [
   { title: "Profil", path: "/profil", icon: User, roles: ["admin"], module: "citaona" },
 
   { title: "Moderacija popusta", path: "/admin/popusti/moderacija", icon: ShieldCheck, roles: ["admin"], module: "popusti" },
+  { title: "API partneri", path: "/admin/popusti/api-partneri", icon: KeyRound, roles: ["admin"], module: "popusti" },
   { title: "Profil", path: "/profil", icon: User, roles: ["admin"], module: "popusti" },
 
   { title: "Stipendije", path: "/admin/stipendije", icon: GraduationCap, roles: ["admin"], module: "stipendije" },
