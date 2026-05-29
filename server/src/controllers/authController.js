@@ -78,11 +78,9 @@ const register = async (req, res) => {
       name,
       email,
       password,
-      role,
       faculty,
       dorm,
       index_number,
-      admin_module,
     } = req.body;
 
     if (!name || !email || !password) {
@@ -116,8 +114,8 @@ const register = async (req, res) => {
         index_number,
         admin_module
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING 
+      VALUES ($1, $2, $3, 'student', $4, $5, $6, NULL)
+      RETURNING
         id,
         name,
         email,
@@ -131,11 +129,9 @@ const register = async (req, res) => {
         name,
         email,
         hashedPassword,
-        role || "student",
         faculty || null,
         dorm || null,
         index_number || null,
-        admin_module || null,
       ]
     );
 
