@@ -98,7 +98,7 @@ const register = async (req, res) => {
 
     if (existingUser.rows.length > 0) {
       return res.status(409).json({
-        message: "Korisnik sa ovim emailom veÄ‡ postoji.",
+        message: "Korisnik sa ovim emailom već postoji.",
       });
     }
 
@@ -383,7 +383,7 @@ const changePassword = async (req, res) => {
 
     if (result.rows.length === 0) {
       return res.status(404).json({
-        message: "Korisnik nije pronaÄ‘en.",
+        message: "Korisnik nije pronađen.",
       });
     }
 

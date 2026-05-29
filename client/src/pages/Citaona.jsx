@@ -40,6 +40,15 @@ function Citaona() {
 
   const allowedDates = useMemo(() => [getTodayISO(), getTomorrowISO()], []);
 
+  const minTime = useMemo(() => {
+    if (datum !== getTodayISO()) return undefined;
+
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, "0")}:${String(
+      now.getMinutes()
+    ).padStart(2, "0")}`;
+  }, [datum]);
+
   useEffect(() => {
     fetchCitaona();
   }, [datum, vrijemeOd, trajanje]);
@@ -126,7 +135,7 @@ function Citaona() {
         <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
           <InfoMini icon={DoorOpen} label="Kapacitet" value="30 mjesta" />
           <InfoMini icon={Clock3} label="Radnim danima" value="07:00-21:00" />
-          <InfoMini icon={CalendarDays} label="Vikend" value="Subota 07:00-15:00 - Nedjelja ne radi" />
+          <InfoMini icon={CalendarDays} label="Vikend" value="Subota: 07:00-15:00  Nedjeljom ne radi " />
         </div>
       </section>
 
@@ -152,6 +161,7 @@ function Citaona() {
             <input
               type="time"
               value={vrijemeOd}
+              min={minTime}
               onChange={(e) => setVrijemeOd(e.target.value)}
               className="h-12 w-full rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] px-4 text-sm font-semibold outline-none focus:border-[#0b3a8f]"
             />
@@ -270,9 +280,9 @@ function Citaona() {
           <Info className="mt-1 shrink-0 text-[#0b3a8f]" size={20} />
 
           <p className="min-w-0 text-sm leading-6 text-slate-600">
-            Kod rezervacije pokazuje se administratoru čitaonice na ulasku.
-            Rezervacija ističe 15 minuta nakon početka termina ukoliko student
-            ne dođe.
+            Prikažite kod rezervacije administratoru pri ulasku u čitaonicu.
+            <p></p>
+            Ukoliko se ne pojavite u roku od 15 minuta od početka termina, rezervacija će biti otkazana.
           </p>
         </div>
       </section>

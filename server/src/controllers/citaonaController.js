@@ -36,6 +36,21 @@ function addMinutesToTime(time, minutesToAdd) {
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
+function isPastTime(dateValue, timeFrom) {
+  const selected = new Date(dateValue);
+  selected.setHours(0, 0, 0, 0);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (selected.getTime() !== today.getTime()) return false;
+
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+  return timeToMinutes(timeFrom) < nowMinutes;
+}
+
 function isTodayOrTomorrow(dateValue) {
   const selected = new Date(dateValue);
   selected.setHours(0, 0, 0, 0);
@@ -49,8 +64,30 @@ function isTodayOrTomorrow(dateValue) {
   return selected.getTime() === today.getTime() || selected.getTime() === tomorrow.getTime();
 }
 
+async function markExpiredReservations() {
+  await pool.query(
+    `
+    UPDATE rezervacija
+    SET status = 'expired'
+    WHERE status = 'pending'
+    AND expires_at < NOW()
+    `
+  );
+
+  await pool.query(
+    `
+    UPDATE rezervacija
+    SET status = 'completed'
+    WHERE status = 'active'
+    AND (datum + vrijeme_do) < NOW()
+    `
+  );
+}
+
 const getCitaonaData = async (req, res) => {
   try {
+    await markExpiredReservations();
+
     const datum = req.query.datum || new Date().toISOString().slice(0, 10);
     const vrijemeOd = req.query.vrijeme_od || "07:00";
     const trajanje = Number(req.query.trajanje || 60);
@@ -136,6 +173,12 @@ const createReservation = async (req, res) => {
       });
     }
 
+    if (isPastTime(datum, vrijeme_od)) {
+      return res.status(400).json({
+        message: "Ne možeš rezervisati termin koji je već prošao.",
+      });
+    }
+
     if (!durations.includes(Number(trajanje))) {
       return res.status(400).json({ message: "Nevažeće trajanje rezervacije." });
     }
@@ -147,6 +190,8 @@ const createReservation = async (req, res) => {
         message: "Čitaonica ne radi u izabranom terminu.",
       });
     }
+
+    await markExpiredReservations();
 
     const overlap = await pool.query(
       `
@@ -307,6 +352,8 @@ const cancelReservation = async (req, res) => {
 };
 const getAdminReservations = async (req, res) => {
   try {
+    await markExpiredReservations();
+
     const result = await pool.query(
       `
       SELECT
@@ -351,6 +398,8 @@ const createAdminReservation = async (req, res) => {
         message: "Čitaonica ne radi u izabranom terminu.",
       });
     }
+
+    await markExpiredReservations();
 
     const overlap = await pool.query(
       `
