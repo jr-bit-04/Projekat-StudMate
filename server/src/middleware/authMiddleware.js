@@ -27,7 +27,18 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
+const requireGlobalAdmin = (req, res, next) => {
+  if (req.user.role !== "admin" || req.user.admin_module !== "all") {
+    return res.status(403).json({
+      message: "Samo globalni admin ima pristup ovome.",
+    });
+  }
+
+  next();
+};
+
 module.exports = {
   protect,
   requireAdmin,
+  requireGlobalAdmin,
 };

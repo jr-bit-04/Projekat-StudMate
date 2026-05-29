@@ -32,6 +32,11 @@ function Login() {
 
   const redirectUser = (user) => {
     if (user.role === "admin") {
+      if (user.admin_module === "all") {
+        window.location.href = "/admin/menza";
+        return;
+      }
+
       if (user.admin_module === "menza") {
         window.location.href = "/admin/menza";
         return;

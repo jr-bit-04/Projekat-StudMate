@@ -140,7 +140,9 @@ const register = async (req, res) => {
     );
 
     const user = newUser.rows[0];
-    const token = createToken(user.id, user.role);
+    const token = createToken(user.id, user.role, {
+      admin_module: user.admin_module,
+    });
 
     res.status(201).json({
       message: "Registracija uspješna.",
@@ -214,7 +216,9 @@ const login = async (req, res) => {
       [user.id]
     );
 
-    const token = createToken(user.id, user.role);
+    const token = createToken(user.id, user.role, {
+      admin_module: user.admin_module,
+    });
 
     res.json({
       message: "Prijava uspješna.",
@@ -334,7 +338,7 @@ const verifyResetCode = async (req, res) => {
     const token = createToken(
       user.id,
       user.role,
-      { passwordReset: true },
+      { passwordReset: true, admin_module: user.admin_module },
       { expiresIn: "15m" }
     );
 
@@ -429,7 +433,9 @@ const changePassword = async (req, res) => {
       return res.json({
         message: "Lozinka je uspješno promijenjena.",
         user: updatedUser,
-        token: createToken(updatedUser.id, updatedUser.role),
+        token: createToken(updatedUser.id, updatedUser.role, {
+          admin_module: updatedUser.admin_module,
+        }),
       });
     }
 

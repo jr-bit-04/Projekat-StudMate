@@ -34,3 +34,45 @@ export const navigation = [
   { title: "Profil", path: "/profil", icon: User, roles: ["admin"], module: "stipendije" },
 
 ];
+
+export const adminModuleOrder = ["menza", "dom", "citaona", "popusti", "stipendije"];
+
+export const adminModuleLabels = {
+  menza: "Menza",
+  dom: "Dom",
+  citaona: "Čitaonica",
+  popusti: "Popusti",
+  stipendije: "Stipendije",
+};
+
+export function getGlobalAdminGroups() {
+  return adminModuleOrder
+    .map((module) => ({
+      module,
+      label: adminModuleLabels[module],
+      items: navigation.filter(
+        (item) =>
+          item.roles?.includes("admin") &&
+          item.module === module &&
+          item.path !== "/profil"
+      ),
+    }))
+    .filter((group) => group.items.length > 0);
+}
+
+export function getGlobalAdminFlat() {
+  const items = getGlobalAdminGroups().flatMap((group) =>
+    group.items.map((item) => ({ ...item, moduleLabel: group.label }))
+  );
+
+  const titleCounts = items.reduce((acc, item) => {
+    acc[item.title] = (acc[item.title] || 0) + 1;
+    return acc;
+  }, {});
+
+  return items.map((item) =>
+    titleCounts[item.title] > 1
+      ? { ...item, title: `${item.title} (${item.moduleLabel})` }
+      : item
+  );
+}

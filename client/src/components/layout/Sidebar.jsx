@@ -1,12 +1,15 @@
 import { NavLink } from "react-router-dom";
-import { LogOut } from "lucide-react";
-import { navigation } from "../../data/navigation";
+import { LogOut, User, Users } from "lucide-react";
+import { navigation, getGlobalAdminGroups } from "../../data/navigation";
 import ucgLogo from "../../assets/ucg-logo.png";
 
 function Sidebar() {
   const user =
     JSON.parse(localStorage.getItem("user")) ||
     JSON.parse(sessionStorage.getItem("user"));
+
+  const isGlobalAdmin =
+    user?.role === "admin" && user?.admin_module === "all";
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -40,27 +43,38 @@ function Sidebar() {
         </div>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-2">
-        {visibleNavigation.map((item) => {
-          const Icon = item.icon;
+      <nav className="flex flex-1 flex-col gap-2 overflow-y-auto pr-1">
+        {isGlobalAdmin ? (
+          <>
+            {getGlobalAdminGroups().map((group) => (
+              <div key={group.module} className="flex flex-col gap-1">
+                <p className="px-4 pb-1 pt-3 text-[11px] font-black uppercase tracking-[0.16em] text-blue-200">
+                  {group.label}
+                </p>
 
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition ${
-                  isActive
-                    ? "bg-white text-[#0b3a8f] shadow-lg"
-                    : "text-blue-100 hover:bg-white/10 hover:text-white"
-                }`
-              }
-            >
-              <Icon size={20} />
-              {item.title}
-            </NavLink>
-          );
-        })}
+                {group.items.map((item) => (
+                  <SidebarLink key={item.path} item={item} />
+                ))}
+              </div>
+            ))}
+
+            <p className="px-4 pb-1 pt-3 text-[11px] font-black uppercase tracking-[0.16em] text-blue-200">
+              Sistem
+            </p>
+
+            <SidebarLink
+              item={{ title: "Korisnici", path: "/admin/korisnici", icon: Users }}
+            />
+
+            <SidebarLink
+              item={{ title: "Profil", path: "/profil", icon: User }}
+            />
+          </>
+        ) : (
+          visibleNavigation.map((item) => (
+            <SidebarLink key={item.path} item={item} />
+          ))
+        )}
       </nav>
 
       <div className="rounded-3xl border border-white/10 bg-white/10 p-4">
@@ -81,6 +95,26 @@ function Sidebar() {
         </button>
       </div>
     </aside>
+  );
+}
+
+function SidebarLink({ item }) {
+  const Icon = item.icon;
+
+  return (
+    <NavLink
+      to={item.path}
+      className={({ isActive }) =>
+        `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition ${
+          isActive
+            ? "bg-white text-[#0b3a8f] shadow-lg"
+            : "text-blue-100 hover:bg-white/10 hover:text-white"
+        }`
+      }
+    >
+      <Icon size={20} />
+      {item.title}
+    </NavLink>
   );
 }
 

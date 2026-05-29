@@ -1,22 +1,31 @@
 import { NavLink } from "react-router-dom";
-import { LogOut } from "lucide-react";
-import { navigation } from "../../data/navigation";
+import { LogOut, User, Users } from "lucide-react";
+import { navigation, getGlobalAdminFlat } from "../../data/navigation";
 
 function MobileNav() {
   const user =
     JSON.parse(localStorage.getItem("user")) ||
     JSON.parse(sessionStorage.getItem("user"));
 
-  const visibleNavigation = navigation.filter((item) => {
-    if (!user) return false;
-    if (!item.roles?.includes(user.role)) return false;
+  const isGlobalAdmin =
+    user?.role === "admin" && user?.admin_module === "all";
 
-    if (user.role === "admin") {
-      return item.module === user.admin_module;
-    }
+  const visibleNavigation = isGlobalAdmin
+    ? [
+        ...getGlobalAdminFlat(),
+        { title: "Korisnici", path: "/admin/korisnici", icon: Users },
+        { title: "Profil", path: "/profil", icon: User },
+      ]
+    : navigation.filter((item) => {
+        if (!user) return false;
+        if (!item.roles?.includes(user.role)) return false;
 
-    return true;
-  });
+        if (user.role === "admin") {
+          return item.module === user.admin_module;
+        }
+
+        return true;
+      });
 
   const handleLogout = () => {
     localStorage.removeItem("token");

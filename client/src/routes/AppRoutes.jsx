@@ -23,6 +23,7 @@ import AdminDomObavjestenja from "../pages/AdminDomObavjestenja";
 import PartnerPopusti from "../pages/PartnerPopusti";
 import PopustiModeracija from "../pages/PopustiModeracija";
 import AdminStipendije from "../pages/AdminStipendije";
+import AdminKorisnici from "../pages/AdminKorisnici";
 
 
 function getUser() {
@@ -43,7 +44,11 @@ function ProtectedRoute({ children }) {
 function AdminModuleRoute({ module, children }) {
   const user = getUser();
 
-  if (user?.role !== "admin" || user?.admin_module !== module) {
+  const allowed =
+    user?.role === "admin" &&
+    (user.admin_module === "all" || user.admin_module === module);
+
+  if (!allowed) {
     return <Navigate to="/login" replace />;
   }
 
@@ -159,6 +164,17 @@ function AppRoutes() {
             <ProtectedRoute>
               <AdminModuleRoute module="stipendije">
                 <AdminStipendije />
+              </AdminModuleRoute>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/korisnici"
+          element={
+            <ProtectedRoute>
+              <AdminModuleRoute module="all">
+                <AdminKorisnici />
               </AdminModuleRoute>
             </ProtectedRoute>
           }
