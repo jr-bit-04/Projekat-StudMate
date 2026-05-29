@@ -12,7 +12,15 @@ function AdminMenzaBonovi() {
   const fetchStudents = async () => {
     try {
       const res = await api.get(`/menza/admin/studenti?search=${search}`);
-      setStudents(res.data.students || []);
+
+      const normalized = (res.data.students || []).map((s) => ({
+        ...s,
+        dorucak: Math.max(0, Number(s.dorucak) || 0),
+        rucak: Math.max(0, Number(s.rucak) || 0),
+        vecera: Math.max(0, Number(s.vecera) || 0),
+      }));
+
+      setStudents(normalized);
     } catch (error) {
       setMessage(error.response?.data?.message || "Greška pri pretrazi.");
     }
@@ -200,7 +208,16 @@ function BonInput({ value, onChange }) {
         type="number"
         min="0"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          const raw = e.target.value;
+          if (raw === "") return onChange("");
+          const n = Number(raw);
+          if (Number.isNaN(n)) return;
+          onChange(Math.max(0, n));
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "-" || e.key === "e") e.preventDefault();
+        }}
         className="h-10 w-full rounded-xl border border-[#dbe4f0] bg-[#F8FBFF] pl-9 pr-3 text-sm font-bold outline-none focus:border-[#0b3a8f]"
       />
     </div>

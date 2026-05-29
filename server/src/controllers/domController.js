@@ -1,5 +1,45 @@
 const pool = require("../config/db");
 
+async function ensureSameDorm(adminUser, userId) {
+  const studentRes = await pool.query(
+    "SELECT id, name, email, faculty, index_number, dorm FROM users WHERE id = $1",
+    [userId]
+  );
+  const student = studentRes.rows[0];
+
+  if (!student) {
+    return { ok: false, status: 404, message: "Student nije pronađen." };
+  }
+
+  if (adminUser.admin_module === "all") {
+    return { ok: true, student };
+  }
+
+  const adminRes = await pool.query(
+    "SELECT dorm FROM users WHERE id = $1",
+    [adminUser.id]
+  );
+  const adminDorm = adminRes.rows[0]?.dorm;
+
+  if (!adminDorm || adminDorm === "-") {
+    return {
+      ok: false,
+      status: 400,
+      message: "Admin nema dodijeljen studentski dom.",
+    };
+  }
+
+  if (student.dorm !== adminDorm) {
+    return {
+      ok: false,
+      status: 403,
+      message: "Student ne pripada tvom domu.",
+    };
+  }
+
+  return { ok: true, student };
+}
+
 const getDomData = async (req, res) => {
   try {
     const obligations = await pool.query(
@@ -82,14 +122,10 @@ const getStudentDomObligations = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const student = await pool.query(
-      `
-      SELECT id, name, email, faculty, index_number, dorm
-      FROM users
-      WHERE id = $1
-      `,
-      [userId]
-    );
+    const check = await ensureSameDorm(req.user, userId);
+    if (!check.ok) {
+      return res.status(check.status).json({ message: check.message });
+    }
 
     const obligations = await pool.query(
       `
@@ -102,7 +138,7 @@ const getStudentDomObligations = async (req, res) => {
     );
 
     res.json({
-      student: student.rows[0],
+      student: check.student,
       obligations: obligations.rows,
     });
   } catch (error) {
@@ -127,10 +163,31 @@ const saveStudentDomObligation = async (req, res) => {
       boravi_u_domu,
     } = req.body;
 
+    if (!mjesec || !godina) {
+      return res.status(400).json({
+        message: "Mjesec i godina su obavezni.",
+      });
+    }
+
+    const m = Number(mjesec);
+    if (!Number.isInteger(m) || m < 1 || m > 12) {
+      return res.status(400).json({
+        message: "Mjesec mora biti broj od 1 do 12.",
+      });
+    }
+
+    const check = await ensureSameDorm(req.user, userId);
+    if (!check.ok) {
+      return res.status(check.status).json({ message: check.message });
+    }
+
+    const safeIznos = Math.max(0, Number(iznos) || 0);
+    const safeUplaceno = Math.max(0, Number(uplaceno) || 0);
+
     const finalStatus =
       boravi_u_domu === false
         ? "inactive"
-        : Number(uplaceno || 0) >= Number(iznos || 0)
+        : safeUplaceno >= safeIznos
         ? "paid"
         : "unpaid";
 
@@ -152,10 +209,10 @@ const saveStudentDomObligation = async (req, res) => {
       `,
       [
         userId,
-        mjesec,
+        m,
         godina,
-        iznos || 0,
-        uplaceno || 0,
+        safeIznos,
+        safeUplaceno,
         finalStatus,
         due_date || null,
         paid_at || null,
@@ -169,6 +226,36 @@ const saveStudentDomObligation = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Greška pri čuvanju obaveze.",
+      error: error.message,
+    });
+  }
+};
+
+const deleteStudentDomObligation = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const obligationRes = await pool.query(
+      "SELECT user_id FROM dom_obaveza WHERE id = $1",
+      [id]
+    );
+    const obligation = obligationRes.rows[0];
+
+    if (!obligation) {
+      return res.status(404).json({ message: "Obaveza nije pronađena." });
+    }
+
+    const check = await ensureSameDorm(req.user, obligation.user_id);
+    if (!check.ok) {
+      return res.status(check.status).json({ message: check.message });
+    }
+
+    await pool.query("DELETE FROM dom_obaveza WHERE id = $1", [id]);
+
+    res.json({ message: "Obaveza je obrisana." });
+  } catch (error) {
+    res.status(500).json({
+      message: "Greška pri brisanju obaveze.",
       error: error.message,
     });
   }
@@ -198,6 +285,12 @@ const saveDomNotice = async (req, res) => {
   try {
     const { naslov, opis, kategorija, priority, pinned } = req.body;
 
+    if (!naslov || !opis) {
+      return res.status(400).json({
+        message: "Naslov i opis su obavezni.",
+      });
+    }
+
     const result = await pool.query(
       `
       INSERT INTO obavjestenje (modul, naslov, opis, kategorija, priority, pinned, datum_vrijeme)
@@ -224,6 +317,12 @@ const updateDomNotice = async (req, res) => {
     const { id } = req.params;
     const { naslov, opis, kategorija, priority, pinned } = req.body;
 
+    if (!naslov || !opis) {
+      return res.status(400).json({
+        message: "Naslov i opis su obavezni.",
+      });
+    }
+
     const result = await pool.query(
       `
       UPDATE obavjestenje
@@ -238,6 +337,10 @@ const updateDomNotice = async (req, res) => {
       `,
       [naslov, opis, kategorija || "Dom", priority || 1, pinned || false, id]
     );
+
+    if (!result.rows[0]) {
+      return res.status(404).json({ message: "Obavještenje nije pronađeno." });
+    }
 
     res.json({
       message: "Obavještenje je izmijenjeno.",
@@ -255,10 +358,14 @@ const deleteDomNotice = async (req, res) => {
   try {
     const { id } = req.params;
 
-    await pool.query(
-      `DELETE FROM obavjestenje WHERE id = $1 AND modul = 'dom'`,
+    const result = await pool.query(
+      `DELETE FROM obavjestenje WHERE id = $1 AND modul = 'dom' RETURNING id`,
       [id]
     );
+
+    if (!result.rows[0]) {
+      return res.status(404).json({ message: "Obavještenje nije pronađeno." });
+    }
 
     res.json({ message: "Obavještenje je obrisano." });
   } catch (error) {
@@ -274,6 +381,7 @@ module.exports = {
   searchDomStudents,
   getStudentDomObligations,
   saveStudentDomObligation,
+  deleteStudentDomObligation,
   getDomNotices,
   saveDomNotice,
   updateDomNotice,
