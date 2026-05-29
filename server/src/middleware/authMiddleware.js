@@ -17,16 +17,6 @@ const protect = (req, res, next) => {
     return res.status(401).json({ message: "Token nije validan." });
   }
 };
-const requireAdmin = (req, res, next) => {
-  if (req.user.role !== "admin") {
-    return res.status(403).json({
-      message: "Nemaš dozvolu za admin panel.",
-    });
-  }
-
-  next();
-};
-
 const requireGlobalAdmin = (req, res, next) => {
   if (req.user.role !== "admin" || req.user.admin_module !== "all") {
     return res.status(403).json({
@@ -52,7 +42,6 @@ const requireModuleAdmin = (module) => (req, res, next) => {
 
 module.exports = {
   protect,
-  requireAdmin,
   requireGlobalAdmin,
   requireModuleAdmin,
 };
