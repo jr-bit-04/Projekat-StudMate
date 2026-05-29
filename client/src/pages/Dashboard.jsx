@@ -117,7 +117,7 @@ function Dashboard() {
             subtitle="Podaci iz tabele obavještenja"
           />
 
-          <div className="mt-5 grid gap-4">
+          <div className="mt-5 grid gap-4 md:max-h-[400px] md:overflow-y-auto md:pr-1">
             {data.announcements.length === 0 ? (
               <Empty text="Trenutno nema obavještenja." />
             ) : (
@@ -153,7 +153,7 @@ function Dashboard() {
             subtitle="Aktivni obroci"
           />
 
-          <div className="mt-5 grid gap-3">
+          <div className="mt-5 grid gap-3 md:max-h-[400px] md:overflow-y-auto md:pr-1">
             {data.menu.length === 0 ? (
               <Empty text="Trenutno nema aktivnog menija." />
             ) : (
@@ -184,7 +184,7 @@ function Dashboard() {
             subtitle="Studentske pogodnosti"
           />
 
-          <div className="mt-5 grid gap-4">
+          <div className="mt-5 grid gap-4 md:max-h-[400px] md:overflow-y-auto md:pr-1">
             {data.discounts.length === 0 ? (
               <Empty text="Trenutno nema aktivnih popusta." />
             ) : (
@@ -216,7 +216,7 @@ function Dashboard() {
             subtitle="Aktivni konkursi"
           />
 
-          <div className="mt-5 grid gap-4">
+          <div className="mt-5 grid gap-4 md:max-h-[400px] md:overflow-y-auto md:pr-1">
             {data.scholarships.length === 0 ? (
               <Empty text="Trenutno nema aktivnih stipendija." />
             ) : (
