@@ -7,13 +7,13 @@ const {
   createDiscount,
 } = require("../controllers/adminController");
 
-const { protect, requireAdmin } = require("../middleware/authMiddleware");
+const { protect, requireGlobalAdmin } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-router.post("/announcements", protect, requireAdmin, createAnnouncement);
-router.post("/menu", protect, requireAdmin, createMenuItem);
-router.post("/scholarships", protect, requireAdmin, createScholarship);
-router.post("/discounts", protect, requireAdmin, createDiscount);
+router.post("/announcements", protect, requireGlobalAdmin, createAnnouncement);
+router.post("/menu", protect, requireGlobalAdmin, createMenuItem);
+router.post("/scholarships", protect, requireGlobalAdmin, createScholarship);
+router.post("/discounts", protect, requireGlobalAdmin, createDiscount);
 
 module.exports = router;

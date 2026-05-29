@@ -37,8 +37,22 @@ const requireGlobalAdmin = (req, res, next) => {
   next();
 };
 
+const requireModuleAdmin = (module) => (req, res, next) => {
+  if (
+    req.user.role !== "admin" ||
+    (req.user.admin_module !== module && req.user.admin_module !== "all")
+  ) {
+    return res.status(403).json({
+      message: "Nemaš dozvolu za ovaj modul.",
+    });
+  }
+
+  next();
+};
+
 module.exports = {
   protect,
   requireAdmin,
   requireGlobalAdmin,
+  requireModuleAdmin,
 };

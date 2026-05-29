@@ -12,7 +12,7 @@ const {
 
 const {
   protect,
-  requireAdmin,
+  requireModuleAdmin,
 } = require("../middleware/authMiddleware");
 
 const router = express.Router();
@@ -23,9 +23,9 @@ router.post("/partner/submit", createPartnerPortalSubmission);
 
 router.post("/api/promotions", createApiPromotion);
 
-router.get("/moderacija", protect, requireAdmin, getModerationData);
-router.put("/moderacija/:id/approve", protect, requireAdmin, approvePopust);
-router.put("/moderacija/:id/reject", protect, requireAdmin, rejectPopust);
-router.post("/moderacija/api-partner", protect, requireAdmin, createApiPartner);
+router.get("/moderacija", protect, requireModuleAdmin("popusti"), getModerationData);
+router.put("/moderacija/:id/approve", protect, requireModuleAdmin("popusti"), approvePopust);
+router.put("/moderacija/:id/reject", protect, requireModuleAdmin("popusti"), rejectPopust);
+router.post("/moderacija/api-partner", protect, requireModuleAdmin("popusti"), createApiPartner);
 
 module.exports = router;

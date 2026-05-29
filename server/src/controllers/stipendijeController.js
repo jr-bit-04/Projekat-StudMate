@@ -6,6 +6,7 @@ const getStipendije = async (req, res) => {
       SELECT *
       FROM stipendija
       WHERE aktivan = true
+      AND (rok IS NULL OR rok >= CURRENT_DATE)
       ORDER BY rok ASC, created_at DESC
     `);
 
@@ -55,6 +56,12 @@ const createStipendija = async (req, res) => {
     if (!naslov || !institucija || !tip || !opis || !rok) {
       return res.status(400).json({
         message: "Sva obavezna polja moraju biti popunjena.",
+      });
+    }
+
+    if (String(rok).slice(0, 10) < new Date().toLocaleDateString("en-CA")) {
+      return res.status(400).json({
+        message: "Rok ne može biti u prošlosti.",
       });
     }
 
@@ -113,6 +120,13 @@ const updateStipendija = async (req, res) => {
       link,
       aktivan,
     } = req.body;
+    
+    if (!naslov || !institucija || !tip || !opis || !rok) {
+      return res.status(400).json({
+        message: "Sva obavezna polja moraju biti popunjena.",
+      });
+    }
+
 
     const result = await pool.query(
       `

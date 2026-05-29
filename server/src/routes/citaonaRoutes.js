@@ -11,7 +11,7 @@ const {
 
 const {
   protect,
-  requireAdmin,
+  requireModuleAdmin,
 } = require("../middleware/authMiddleware");
 
 const router = express.Router();
@@ -25,20 +25,20 @@ router.delete("/rezervacija/:id", protect, cancelReservation);
 router.get(
   "/admin/rezervacije",
   protect,
-  requireAdmin,
+  requireModuleAdmin("citaona"),
   getAdminReservations
 );
 
 router.post(
   "/admin/potvrdi",
   protect,
-  requireAdmin,
+  requireModuleAdmin("citaona"),
   confirmReservationCode
 );
 router.post(
   "/admin/rezervacija",
   protect,
-  requireAdmin,
+  requireModuleAdmin("citaona"),
   createAdminReservation
 );
 
