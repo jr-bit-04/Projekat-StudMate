@@ -55,6 +55,16 @@ function AdminModuleRoute({ module, children }) {
 
   return children;
 }
+/*da se ne ponavljastalno isti */
+function AdminRoute({ module, element }) {
+  return (
+    <ProtectedRoute>
+      <AdminModuleRoute module={module}>
+        {element}
+      </AdminModuleRoute>
+    </ProtectedRoute>
+  );
+}
 
 function AppRoutes() {
   return (
@@ -65,136 +75,35 @@ function AppRoutes() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+
         <Route path="/dom" element={<ProtectedRoute><Dom /></ProtectedRoute>} />
         <Route path="/menza" element={<ProtectedRoute><Menza /></ProtectedRoute>} />
         <Route path="/citaona" element={<ProtectedRoute><Citaona /></ProtectedRoute>} />
         <Route path="/popusti" element={<ProtectedRoute><Popusti /></ProtectedRoute>} />
         <Route path="/stipendije" element={<ProtectedRoute><Stipendije /></ProtectedRoute>} />
+
         <Route path="/profil" element={<ProtectedRoute><Profil /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
         <Route path="/partner-popusti" element={<PartnerPopusti />} />
-        
-        <Route
-          path="/admin/popusti/moderacija"
-          element={
-            <ProtectedRoute>
-              <AdminModuleRoute module="popusti">
-                <PopustiModeracija />
-              </AdminModuleRoute>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/popusti/api-partneri"
-          element={
-            <ProtectedRoute>
-              <AdminModuleRoute module="popusti">
-                <AdminApiPartneri />
-              </AdminModuleRoute>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/citaona"
-          element={
-            <ProtectedRoute>
-              <AdminModuleRoute module="citaona">
-                <AdminCitaona />
-              </AdminModuleRoute>
-            </ProtectedRoute>
-          }
-        />
 
-        <Route
-          path="/admin/menza"
-          element={
-            <ProtectedRoute>
-              <AdminModuleRoute module="menza">
-                <AdminMenza />
-              </AdminModuleRoute>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/menza/bonovi"
-          element={
-            <ProtectedRoute>
-              <AdminModuleRoute module="menza">
-                <AdminMenzaBonovi />
-              </AdminModuleRoute>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/menza/obavjestenja"
-          element={
-            <ProtectedRoute>
-              <AdminModuleRoute module="menza">
-                <AdminMenzaObavjestenja />
-              </AdminModuleRoute>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/dom"
-          element={
-            <ProtectedRoute>
-              <AdminModuleRoute module="dom">
-                <AdminDom />
-              </AdminModuleRoute>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/dom/obavjestenja"
-          element={
-            <ProtectedRoute>
-              <AdminModuleRoute module="dom">
-                <AdminDomObavjestenja />
-              </AdminModuleRoute>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/stipendije"
-          element={
-            <ProtectedRoute>
-              <AdminModuleRoute module="stipendije">
-                <AdminStipendije />
-              </AdminModuleRoute>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/krediti"
-          element={
-            <ProtectedRoute>
-              <AdminModuleRoute module="stipendije">
-                <AdminStipendije />
-              </AdminModuleRoute>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/korisnici"
-          element={
-            <ProtectedRoute>
-              <AdminModuleRoute module="all">
-                <AdminKorisnici />
-              </AdminModuleRoute>
-            </ProtectedRoute>
-          }
-        />
-
+        <Route path="/admin/popusti/moderacija" element={<AdminRoute module="popusti" element={<PopustiModeracija />} />} />
+        <Route path="/admin/popusti/api-partneri" element={<AdminRoute module="popusti" element={<AdminApiPartneri />} />} />
+        <Route path="/admin/citaona" element={<AdminRoute module="citaona" element={<AdminCitaona />} />} />
+        <Route path="/admin/menza" element={<AdminRoute module="menza" element={<AdminMenza />} />} />
+        <Route path="/admin/menza/bonovi" element={<AdminRoute module="menza" element={<AdminMenzaBonovi />} />} />
+        <Route path="/admin/menza/obavjestenja" element={<AdminRoute module="menza" element={<AdminMenzaObavjestenja />} />} />
+        <Route path="/admin/dom" element={<AdminRoute module="dom" element={<AdminDom />} />} />
+        <Route path="/admin/dom/obavjestenja" element={<AdminRoute module="dom" element={<AdminDomObavjestenja />} />} />
+        <Route path="/admin/stipendije" element={<AdminRoute module="stipendije" element={<AdminStipendije />} />} />
+        <Route path="/admin/krediti" element={<AdminRoute module="stipendije" element={<AdminStipendije />} />} />
+        <Route path="/admin/korisnici" element={<AdminRoute module="all" element={<AdminKorisnici />} />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
+          
       </Routes>
     </BrowserRouter>
-  );
+
+
+);
 }
 
 export default AppRoutes;
