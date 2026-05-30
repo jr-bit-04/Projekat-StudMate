@@ -4,8 +4,10 @@ import {
   CalendarDays,
   CheckCircle2,
   Home,
+  Pencil,
   Save,
   Search,
+  Trash2,
   User,
   XCircle,
 } from "lucide-react";
@@ -95,6 +97,41 @@ function AdminDom() {
       setMessage(
         error.response?.data?.message ||
           "Greška pri čuvanju obaveze."
+      );
+    }
+  };
+
+  const editObligation = (item) => {
+    setForm({
+      mjesec: item.mjesec || "Januar",
+      godina: item.godina || new Date().getFullYear(),
+      iznos: item.iznos || "",
+      uplaceno: item.uplaceno || "",
+      due_date: item.due_date ? String(item.due_date).slice(0, 10) : "",
+      paid_at: item.paid_at ? String(item.paid_at).slice(0, 10) : "",
+      boravi_u_domu: item.status !== "inactive",
+    });
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const deleteObligation = async (item) => {
+    if (
+      !window.confirm(
+        `Obrisati obavezu za ${item.mjesec} ${item.godina}? Ova akcija je trajna.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const res = await api.delete(`/dom/admin/obaveze/${item.id}`);
+      setMessage(res.data.message);
+
+      if (selectedStudent) selectStudent(selectedStudent);
+    } catch (error) {
+      setMessage(
+        error.response?.data?.message || "Greška pri brisanju obaveze."
       );
     }
   };
@@ -339,52 +376,64 @@ function AdminDom() {
               Evidencija obaveza
             </h2>
 
-            <div className="mt-6 overflow-hidden rounded-2xl border border-[#dbe4f0]">
-              <div className="grid grid-cols-6 bg-[#F8FBFF]">
-                <Head text="Mjesec" />
-                <Head text="Status" />
-                <Head text="Iznos" />
-                <Head text="Uplaćeno" />
-                <Head text="Rok" />
-                <Head text="Uplata" />
-              </div>
-
-              {obligations.map((item) => (
-                <div
-                  key={item.id}
-                  className="grid grid-cols-6 border-t border-[#dbe4f0] bg-white"
-                >
-                  <Cell>
-                    {item.mjesec} {item.godina}
-                  </Cell>
-
-                  <Cell>
-                    <StatusBadge
-                      status={item.status}
-                    />
-                  </Cell>
-
-                  <Cell>
-                    {item.iznos} €
-                  </Cell>
-
-                  <Cell>
-                    {item.uplaceno} €
-                  </Cell>
-
-                  <Cell>
-                    {formatDate(
-                      item.due_date
-                    )}
-                  </Cell>
-
-                  <Cell>
-                    {formatDate(
-                      item.paid_at
-                    )}
-                  </Cell>
+            <div className="mt-6 overflow-x-auto rounded-2xl border border-[#dbe4f0]">
+              <div className="min-w-[820px]">
+                <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_120px] bg-[#F8FBFF]">
+                  <Head text="Mjesec" />
+                  <Head text="Status" />
+                  <Head text="Iznos" />
+                  <Head text="Uplaćeno" />
+                  <Head text="Rok" />
+                  <Head text="Uplata" />
+                  <Head text="" />
                 </div>
-              ))}
+
+                {obligations.length === 0 ? (
+                  <div className="p-6 text-sm text-slate-500">
+                    Nema unesenih obaveza.
+                  </div>
+                ) : (
+                  obligations.map((item) => (
+                    <div
+                      key={item.id}
+                      className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_120px] border-t border-[#dbe4f0] bg-white"
+                    >
+                      <Cell>
+                        {item.mjesec} {item.godina}
+                      </Cell>
+
+                      <Cell>
+                        <StatusBadge status={item.status} />
+                      </Cell>
+
+                      <Cell>{item.iznos} €</Cell>
+                      <Cell>{item.uplaceno} €</Cell>
+                      <Cell>{formatDate(item.due_date)}</Cell>
+                      <Cell>{formatDate(item.paid_at)}</Cell>
+
+                      <Cell>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => editObligation(item)}
+                            className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0b3a8f]/10 text-[#0b3a8f] hover:bg-[#0b3a8f]/20"
+                            title="Uredi"
+                          >
+                            <Pencil size={15} />
+                          </button>
+
+                          <button
+                            onClick={() => deleteObligation(item)}
+                            className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-50 text-red-500 hover:bg-red-100"
+                            title="Obriši"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </Cell>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </section>
         </>

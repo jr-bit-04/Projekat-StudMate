@@ -1,5 +1,10 @@
 const pool = require("../config/db");
 
+const VALID_MONTHS = [
+  "Januar", "Februar", "Mart", "April", "Maj", "Jun",
+  "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar",
+];
+
 async function ensureSameDorm(adminUser, userId) {
   const studentRes = await pool.query(
     "SELECT id, name, email, faculty, index_number, dorm FROM users WHERE id = $1",
@@ -77,37 +82,58 @@ const getDomData = async (req, res) => {
 const searchDomStudents = async (req, res) => {
   try {
     const search = `%${req.query.search || ""}%`;
+    const isGlobal = req.user.admin_module === "all";
 
-    const adminResult = await pool.query(
-      `SELECT dorm FROM users WHERE id = $1`,
-      [req.user.id]
-    );
+    let result;
 
-    const adminDorm = adminResult.rows[0]?.dorm;
+    if (isGlobal) {
+      result = await pool.query(
+        `
+        SELECT id, name, email, faculty, index_number, dorm
+        FROM users
+        WHERE role = 'student'
+        AND (
+          name ILIKE $1 OR
+          email ILIKE $1 OR
+          faculty ILIKE $1 OR
+          index_number ILIKE $1
+        )
+        ORDER BY name ASC
+        LIMIT 50
+        `,
+        [search]
+      );
+    } else {
+      const adminResult = await pool.query(
+        `SELECT dorm FROM users WHERE id = $1`,
+        [req.user.id]
+      );
+      const adminDorm = adminResult.rows[0]?.dorm;
 
-    if (!adminDorm) {
-      return res.status(400).json({
-        message: "Admin nema dodijeljen studentski dom.",
-      });
+      if (!adminDorm || adminDorm === "-") {
+        return res.status(400).json({
+          message: "Admin nema dodijeljen studentski dom.",
+        });
+      }
+
+      result = await pool.query(
+        `
+        SELECT id, name, email, faculty, index_number, dorm
+        FROM users
+        WHERE role = 'student'
+        AND dorm = $1
+        AND (
+          name ILIKE $2 OR
+          email ILIKE $2 OR
+          faculty ILIKE $2 OR
+          index_number ILIKE $2
+        )
+        ORDER BY name ASC
+        LIMIT 50
+        `,
+        [adminDorm, search]
+      );
     }
-
-    const result = await pool.query(
-      `
-      SELECT id, name, email, faculty, index_number, dorm
-      FROM users
-      WHERE role = 'student'
-      AND dorm = $1
-      AND (
-        name ILIKE $2 OR
-        email ILIKE $2 OR
-        faculty ILIKE $2 OR
-        index_number ILIKE $2
-      )
-      ORDER BY name ASC
-      LIMIT 50
-      `,
-      [adminDorm, search]
-    );
 
     res.json({ students: result.rows });
   } catch (error) {
@@ -169,10 +195,9 @@ const saveStudentDomObligation = async (req, res) => {
       });
     }
 
-    const m = Number(mjesec);
-    if (!Number.isInteger(m) || m < 1 || m > 12) {
+    if (!VALID_MONTHS.includes(mjesec)) {
       return res.status(400).json({
-        message: "Mjesec mora biti broj od 1 do 12.",
+        message: "Nevažeći mjesec.",
       });
     }
 
@@ -184,12 +209,16 @@ const saveStudentDomObligation = async (req, res) => {
     const safeIznos = Math.max(0, Number(iznos) || 0);
     const safeUplaceno = Math.max(0, Number(uplaceno) || 0);
 
-    const finalStatus =
-      boravi_u_domu === false
-        ? "inactive"
-        : safeUplaceno >= safeIznos
-        ? "paid"
-        : "unpaid";
+    let finalStatus;
+    if (boravi_u_domu === false) {
+      finalStatus = "inactive";
+    } else if (safeIznos === 0) {
+      finalStatus = "inactive";
+    } else if (safeUplaceno >= safeIznos) {
+      finalStatus = "paid";
+    } else {
+      finalStatus = "unpaid";
+    }
 
     const result = await pool.query(
       `
@@ -209,7 +238,7 @@ const saveStudentDomObligation = async (req, res) => {
       `,
       [
         userId,
-        m,
+        mjesec,
         godina,
         safeIznos,
         safeUplaceno,
