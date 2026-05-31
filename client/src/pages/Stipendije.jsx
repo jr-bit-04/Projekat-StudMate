@@ -102,12 +102,12 @@ function Stipendije() {
             className="min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6"
           >
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-              <div className="flex min-w-0 gap-3 md:gap-4">
+              <div className="flex min-w-0 flex-1 gap-3 md:gap-4">
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#0b3a8f]/10 text-[#0b3a8f]">
                   <GraduationCap size={24} />
                 </div>
 
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap gap-2">
                     <span className="rounded-full bg-[#0b3a8f]/10 px-3 py-1 text-xs font-bold text-[#0b3a8f]">
                       {item.tip}
@@ -122,7 +122,7 @@ function Stipendije() {
                     {item.opis}
                   </p>
 
-                  <div className="mt-5 grid gap-3 text-sm text-slate-600 md:grid-cols-3">
+                  <div className="mt-5 grid gap-3 text-sm text-slate-600 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_max-content]">
                     <Info icon={Building2} text={item.institucija} />
                     <Info icon={Banknote} text={item.iznos || "Nije navedeno"} />
                     <Info
@@ -138,7 +138,7 @@ function Stipendije() {
                   href={item.link}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#0b3a8f] px-5 text-sm font-bold text-white sm:w-auto"
+                  className="flex h-11 w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-[#0b3a8f] px-5 text-sm font-bold text-white sm:w-[174px]"
                 >
                   <ExternalLink size={16} />
                   Otvori konkurs
