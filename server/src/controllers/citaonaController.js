@@ -133,7 +133,29 @@ const getCitaonaData = async (req, res) => {
       FROM rezervacija r
       JOIN mjesto m ON m.id = r.mjesto_id
       WHERE r.user_id = $1
+      AND r.status IN ('pending', 'active')
       ORDER BY r.datum DESC, r.vrijeme_od DESC
+      `,
+      [req.user.id]
+    );
+
+    const istorija = await pool.query(
+      `
+      SELECT
+        r.id,
+        r.kod,
+        r.datum,
+        r.vrijeme_od,
+        r.vrijeme_do,
+        r.status,
+        r.created_at,
+        r.checked_in_at,
+        r.expires_at,
+        m.broj_mjesta
+      FROM rezervacija r
+      JOIN mjesto m ON m.id = r.mjesto_id
+      WHERE r.user_id = $1
+      ORDER BY r.datum DESC, r.vrijeme_od DESC, r.created_at DESC
       `,
       [req.user.id]
     );
@@ -148,6 +170,7 @@ const getCitaonaData = async (req, res) => {
     res.json({
       mjesta: mappedMjesta,
       rezervacije: mojeRezervacije.rows,
+      istorija: istorija.rows,
       vrijeme_do: vrijemeDo,
       radi: isWorkingTime(datum, vrijemeOd, vrijemeDo),
     });
@@ -209,6 +232,25 @@ const createReservation = async (req, res) => {
     if (overlap.rows.length > 0) {
       return res.status(400).json({
         message: "Mjesto je zauzeto u izabranom terminu.",
+      });
+    }
+
+    const userOverlap = await pool.query(
+      `
+      SELECT id
+      FROM rezervacija
+      WHERE user_id = $1
+      AND datum = $2
+      AND status IN ('pending', 'active')
+      AND vrijeme_od < $4
+      AND vrijeme_do > $3
+      `,
+      [req.user.id, datum, vrijeme_od, vrijeme_do]
+    );
+
+    if (userOverlap.rows.length > 0) {
+      return res.status(400).json({
+        message: "Već imaš rezervaciju koja se preklapa sa izabranim terminom.",
       });
     }
 
@@ -350,6 +392,31 @@ const cancelReservation = async (req, res) => {
     });
   }
 };
+
+const clearReservationHistory = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `
+      DELETE FROM rezervacija
+      WHERE user_id = $1
+      AND status NOT IN ('pending', 'active')
+      RETURNING id
+      `,
+      [req.user.id]
+    );
+
+    res.json({
+      message: "Istorija rezervacija je obrisana.",
+      deleted: result.rowCount,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Greška pri brisanju istorije rezervacija.",
+      error: error.message,
+    });
+  }
+};
+
 const getAdminReservations = async (req, res) => {
   try {
     await markExpiredReservations();
@@ -481,6 +548,7 @@ module.exports = {
   createReservation,
   confirmReservationCode,
   cancelReservation,
+  clearReservationHistory,
   getAdminReservations,
   createAdminReservation,
 };

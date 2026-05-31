@@ -3,6 +3,7 @@ import {
   AlertCircle,
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   Clock3,
   DoorOpen,
   Info,
@@ -32,11 +33,13 @@ function Citaona() {
   const [trajanje, setTrajanje] = useState(60);
   const [mjesta, setMjesta] = useState([]);
   const [rezervacije, setRezervacije] = useState([]);
+  const [istorija, setIstorija] = useState([]);
   const [selectedSeat, setSelectedSeat] = useState(null);
   const [vrijemeDo, setVrijemeDo] = useState("");
   const [radi, setRadi] = useState(true);
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState("");
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const allowedDates = useMemo(() => [getTodayISO(), getTomorrowISO()], []);
 
@@ -64,6 +67,7 @@ function Citaona() {
 
       setMjesta(res.data.mjesta || []);
       setRezervacije(res.data.rezervacije || []);
+      setIstorija(res.data.istorija || []);
       setVrijemeDo(res.data.vrijeme_do || "");
       setRadi(res.data.radi);
       setSelectedSeat(null);
@@ -104,12 +108,40 @@ function Citaona() {
     if (!window.confirm("Otkazati rezervaciju?")) return;
 
     try {
+      const cancelled = rezervacije.find((item) => item.id === id);
+
       await api.delete(`/citaona/rezervacija/${id}`);
+
+      setRezervacije((prev) => prev.filter((item) => item.id !== id));
+
+      if (cancelled) {
+        setIstorija((prev) => [
+          { ...cancelled, status: "cancelled" },
+          ...prev,
+        ]);
+      }
+
       setSuccess("Rezervacija je otkazana.");
       fetchCitaona();
     } catch (error) {
       setMessage(
         error.response?.data?.message || "Greška pri otkazivanju rezervacije."
+      );
+    }
+  };
+
+  const clearHistory = async () => {
+    if (!window.confirm("Obrisati cijelu istoriju rezervacija?")) return;
+
+    try {
+      await api.delete("/citaona/rezervacije/istorija");
+      setIstorija((prev) =>
+        prev.filter((item) => item.status === "pending" || item.status === "active")
+      );
+      setSuccess("Istorija završenih i otkazanih rezervacija je obrisana.");
+    } catch (error) {
+      setMessage(
+        error.response?.data?.message || "Greška pri brisanju istorije rezervacija."
       );
     }
   };
@@ -405,6 +437,135 @@ function Citaona() {
             )}
           </div>
         </div>
+      </section>
+
+      <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <button
+            type="button"
+            onClick={() => setHistoryOpen((prev) => !prev)}
+            className="flex min-w-0 items-center gap-3 text-left"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#0b3a8f]/10 text-[#0b3a8f]">
+              <Clock3 size={20} />
+            </span>
+
+            <span className="min-w-0">
+              <span className="block text-2xl font-bold text-[#10243A]">
+                Istorija rezervacija
+              </span>
+              <span className="mt-1 block text-sm font-semibold text-slate-500">
+                {istorija.length} prethodnih rezervacija
+              </span>
+            </span>
+
+            <ChevronDown
+              size={20}
+              className={`shrink-0 text-[#0b3a8f] transition ${
+                historyOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {historyOpen && istorija.length > 0 && (
+            <button
+              type="button"
+              onClick={clearHistory}
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-red-50 px-4 text-sm font-bold text-red-600 transition hover:bg-red-100 md:w-auto"
+            >
+              <Trash2 size={16} />
+              Obriši istoriju
+            </button>
+          )}
+        </div>
+
+        {historyOpen && (
+          <>
+            <div className="mt-6 grid gap-3 md:hidden">
+              {istorija.length === 0 ? (
+                <div className="rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] p-4 text-sm text-slate-500">
+                  Nema istorije rezervacija.
+                </div>
+              ) : (
+                istorija.map((item) => (
+                  <article
+                    key={item.id}
+                    className="rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
+                          Kod
+                        </p>
+
+                        <span className="mt-2 inline-flex rounded-full bg-[#0b3a8f]/10 px-3 py-1 text-sm font-bold text-[#0b3a8f]">
+                          {item.kod}
+                        </span>
+                      </div>
+
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                        {formatStatus(item.status)}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      <ReservationMeta label="Mjesto" value={item.broj_mjesta} />
+                      <ReservationMeta label="Datum" value={formatDate(item.datum)} />
+                      <ReservationMeta
+                        label="Termin"
+                        value={`${item.vrijeme_od?.slice(0, 5)} - ${item.vrijeme_do?.slice(0, 5)}`}
+                      />
+                      <ReservationMeta
+                        label="Kreirano"
+                        value={formatDateTime(item.created_at)}
+                      />
+                    </div>
+                  </article>
+                ))
+              )}
+            </div>
+
+            <div className="mt-6 hidden overflow-x-auto rounded-2xl border border-[#dbe4f0] md:block">
+              <div className="min-w-[720px]">
+                <div className="grid grid-cols-[1fr_1fr_1fr_1.5fr_1fr_1.4fr] bg-[#F8FBFF]">
+                  <Head text="Kod" />
+                  <Head text="Mjesto" />
+                  <Head text="Datum" />
+                  <Head text="Termin" />
+                  <Head text="Status" />
+                  <Head text="Kreirano" />
+                </div>
+
+                {istorija.length === 0 ? (
+                  <div className="p-5 text-sm text-slate-500">
+                    Nema istorije rezervacija.
+                  </div>
+                ) : (
+                  istorija.map((item) => (
+                    <div
+                      key={item.id}
+                      className="grid grid-cols-[1fr_1fr_1fr_1.5fr_1fr_1.4fr] border-t border-[#dbe4f0] bg-white"
+                    >
+                      <Cell>
+                        <span className="rounded-full bg-[#0b3a8f]/10 px-3 py-1 font-bold text-[#0b3a8f]">
+                          {item.kod}
+                        </span>
+                      </Cell>
+
+                      <Cell>{item.broj_mjesta}</Cell>
+                      <Cell>{formatDate(item.datum)}</Cell>
+                      <Cell>
+                        {item.vrijeme_od?.slice(0, 5)} - {item.vrijeme_do?.slice(0, 5)}
+                      </Cell>
+                      <Cell>{formatStatus(item.status)}</Cell>
+                      <Cell>{formatDateTime(item.created_at)}</Cell>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </section>
     </MainLayout>
   );
