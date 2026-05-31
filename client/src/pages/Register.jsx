@@ -4,6 +4,7 @@ import {
   ArrowRight,
   BookOpen,
   Building2,
+  CircleAlert,
   GraduationCap,
   Home,
   Info,
@@ -177,13 +178,14 @@ const Register = () => {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} autoComplete="off">
           <Input
             icon={User}
             name="name"
             placeholder="Ime i prezime"
             value={form.name}
             onChange={handleChange}
+            autoComplete="off"
           />
 
           <Input
@@ -193,6 +195,7 @@ const Register = () => {
             placeholder="email@example.com"
             value={form.email}
             onChange={handleChange}
+            autoComplete="off"
           />
 
           <Input
@@ -202,6 +205,7 @@ const Register = () => {
             placeholder="Lozinka"
             value={form.password}
             onChange={handleChange}
+            autoComplete="new-password"
           />
 
           <SelectInput
@@ -250,6 +254,11 @@ const Register = () => {
             />
           )}
 
+          <div className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-blue-100/85">
+            <CircleAlert size={16} className="text-[#4da3ff]" />
+            <span>Obavezno polje</span>
+          </div>
+
           {message && (
             <div className="mb-3 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
               {message}
@@ -287,7 +296,15 @@ const Register = () => {
   );
 };
 
-function Input({ icon: Icon, name, type = "text", placeholder, value, onChange }) {
+function Input({
+  icon: Icon,
+  name,
+  type = "text",
+  placeholder,
+  value,
+  onChange,
+  autoComplete = "off",
+}) {
   return (
     <div className="relative mb-3">
       <Icon className="absolute left-5 top-4 text-[#4da3ff]" size={20} />
@@ -298,7 +315,13 @@ function Input({ icon: Icon, name, type = "text", placeholder, value, onChange }
         placeholder={placeholder}
         value={value}
         onChange={onChange}
-        className="h-[50px] w-full rounded-[14px] border border-[#4c8ddd]/45 bg-[#041b48]/80 pl-14 pr-5 text-[15px] text-white outline-none placeholder:text-blue-200/60 focus:border-[#6db5ff]"
+        autoComplete={autoComplete}
+        className="h-[50px] w-full rounded-[14px] border border-[#4c8ddd]/45 bg-[#041b48]/80 pl-14 pr-12 text-[15px] text-white outline-none placeholder:text-blue-200/60 focus:border-[#6db5ff]"
+      />
+
+      <CircleAlert
+        size={18}
+        className="pointer-events-none absolute right-4 top-4 text-[#4da3ff]"
       />
     </div>
   );
@@ -321,7 +344,7 @@ function SelectInput({
         name={name}
         value={value}
         onChange={onChange}
-        className="h-[50px] w-full appearance-none rounded-[14px] border border-[#4c8ddd]/45 bg-[#041b48]/80 pl-14 pr-5 text-[15px] text-white outline-none focus:border-[#6db5ff]"
+        className="h-[50px] w-full appearance-none rounded-[14px] border border-[#4c8ddd]/45 bg-[#041b48]/80 pl-14 pr-12 text-[15px] text-white outline-none focus:border-[#6db5ff]"
       >
         <option value="" className="bg-[#041b48]">
           {placeholder}
@@ -338,6 +361,11 @@ function SelectInput({
           );
         })}
       </select>
+
+      <CircleAlert
+        size={18}
+        className="pointer-events-none absolute right-4 top-4 text-[#4da3ff]"
+      />
     </div>
   );
 }
