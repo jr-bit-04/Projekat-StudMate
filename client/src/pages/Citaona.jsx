@@ -135,7 +135,17 @@ function Citaona() {
         <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
           <InfoMini icon={DoorOpen} label="Kapacitet" value="30 mjesta" />
           <InfoMini icon={Clock3} label="Radnim danima" value="07:00-21:00" />
-          <InfoMini icon={CalendarDays} label="Vikend" value="Subota: 07:00-15:00  Nedjeljom ne radi " />
+          <InfoMini
+            icon={CalendarDays}
+            label="Vikend"
+            value={
+              <>
+                Subota: 07:00-15:00
+                <br />
+                Nedjeljom ne radi
+              </>
+            }
+          />
         </div>
       </section>
 
@@ -207,8 +217,8 @@ function Citaona() {
           </div>
 
           <div className="flex flex-wrap gap-x-3 gap-y-2 text-sm font-semibold">
-            <span className="flex items-center gap-2 text-[#0b3a8f]">
-              <span className="h-3 w-3 rounded-full bg-[#0b3a8f]" />
+            <span className="flex items-center gap-2 text-emerald-700">
+              <span className="h-3 w-3 rounded-full bg-emerald-500" />
               Slobodno
             </span>
 
@@ -234,17 +244,11 @@ function Citaona() {
                   unavailable
                     ? "cursor-not-allowed border-red-200 bg-red-50 text-red-500"
                     : selected
-                    ? "scale-105 border-[#0b3a8f] bg-[#0b3a8f] text-white shadow-[0_12px_25px_rgba(0,59,115,0.28)]"
-                    : "border-[#d7e3f2] bg-[#0b3a8f]/10 text-[#0b3a8f] hover:scale-105 hover:bg-[#0b3a8f]/15"
+                    ? "scale-105 border-emerald-600 bg-emerald-600 text-white shadow-[0_12px_25px_rgba(5,150,105,0.28)]"
+                    : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:scale-105 hover:bg-emerald-100"
                 }`}
               >
                 {mjesto.broj_mjesta}
-
-                <span
-                  className={`absolute bottom-1.5 h-1.5 w-1.5 rounded-full md:bottom-2 md:h-2 md:w-2 ${
-                    unavailable ? "bg-red-400" : "bg-emerald-400"
-                  }`}
-                />
               </button>
             );
           })}
@@ -276,14 +280,22 @@ function Citaona() {
       </section>
 
       <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6">
-        <div className="flex items-start gap-3 rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] p-4">
-          <Info className="mt-1 shrink-0 text-[#0b3a8f]" size={20} />
+        <div className="grid gap-3">
+          <div className="flex items-start gap-3 rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] p-4">
+            <Info className="mt-1 shrink-0 text-[#0b3a8f]" size={20} />
 
-          <p className="min-w-0 text-sm leading-6 text-slate-600">
-            Prikažite kod rezervacije administratoru pri ulasku u čitaonicu.
-            <p></p>
-            Ukoliko se ne pojavite u roku od 15 minuta od početka termina, rezervacija će biti otkazana.
-          </p>
+            <p className="min-w-0 text-sm leading-6 text-slate-600">
+              Pri ulasku u čitaonicu obavezno pokažite kod zaposlenom.
+            </p>
+          </div>
+
+          <div className="flex items-start gap-3 rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] p-4">
+            <Info className="mt-1 shrink-0 text-[#0b3a8f]" size={20} />
+
+            <p className="min-w-0 text-sm leading-6 text-slate-600">
+              Ukoliko se ne pojavite u roku od 15 minuta od početka termina, rezervacija će biti otkazana.
+            </p>
+          </div>
         </div>
       </section>
 
