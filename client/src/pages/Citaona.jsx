@@ -13,6 +13,8 @@ import {
 
 import api from "../api/axios";
 import MainLayout from "../components/layout/MainLayout";
+import PageHero from "../components/ui/PageHero";
+import citaonaHero from "../assets/sections/citaona.jpg";
 
 const durations = [
   { label: "30 min", value: 30 },
@@ -148,20 +150,19 @@ function Citaona() {
 
   return (
     <MainLayout>
-      <section className="min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6 lg:p-8">
-
-        <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#0b3a8f]">
-          ČITAONICA
-        </p>
-
-        <h1 className="mt-3 text-lg md:text-2xl lg:text-[34px] font-bold tracking-[-0.03em] text-[#10243A]">
-          Centralna univerzitetska biblioteka
-        </h1>
-
-        <p className="mt-2 text-sm text-slate-500">
-          Rezervacija mjesta u čitaonici za danas ili sjutra.
-        </p>
-      </section>
+      <PageHero
+        eyebrow="ČITAONICA"
+        title="Centralna univerzitetska biblioteka"
+        description="Rezervacija mjesta u čitaonici za danas ili sjutra."
+        image={citaonaHero}
+        imageAlt="Unutrašnjost čitaonice"
+        theme="slate"
+        highlights={[
+          { icon: DoorOpen, label: "30 mjesta" },
+          { icon: Clock3, label: "Radno vrijeme" },
+          { icon: KeyRound, label: "Online rezervacija" },
+        ]}
+      />
 
       <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-3">

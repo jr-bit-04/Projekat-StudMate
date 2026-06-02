@@ -13,6 +13,8 @@ import {
 
 import api from "../api/axios";
 import MainLayout from "../components/layout/MainLayout";
+import PageHero from "../components/ui/PageHero";
+import popustiHero from "../assets/sections/popusti.png";
 
 function Popusti() {
   const [popusti, setPopusti] = useState([]);
@@ -126,20 +128,20 @@ function Popusti() {
 
   return (
     <MainLayout>
-      <section className="min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6 lg:p-8">
-
-        <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#0b3a8f]">
-          POPUSTI
-        </p>
-
-        <h1 className="mt-3 break-words text-lg font-bold tracking-[-0.03em] text-[#10243A] md:text-2xl lg:text-[34px]">
-          Studentske pogodnosti i partneri
-        </h1>
-
-        <p className="mt-2 break-words text-sm text-slate-500">
-          Pregled svih aktivnih studentskih popusta i partnerskih pogodnosti.
-        </p>
-      </section>
+      <PageHero
+        eyebrow="POPUSTI"
+        title="Studentske pogodnosti i partneri"
+        description="Pregled svih aktivnih studentskih popusta i partnerskih pogodnosti."
+        image={popustiHero}
+        imageAlt="Ilustracija studentskih popusta"
+        theme="amber"
+        imagePanelClassName="bg-[#0b2f6b]"
+        highlights={[
+          { icon: Percent, label: "Aktivne ponude" },
+          { icon: Store, label: "Partnerska mreža" },
+          { icon: Tag, label: "Brzi kodovi i uslovi" },
+        ]}
+      />
 
       <section className="mt-7 grid min-w-0 grid-cols-1 gap-7 lg:grid-cols-[1fr_320px]">
         <div className="min-w-0 space-y-7">

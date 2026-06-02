@@ -10,6 +10,8 @@ import {
 
 import api from "../api/axios";
 import MainLayout from "../components/layout/MainLayout";
+import PageHero from "../components/ui/PageHero";
+import stipendijeHero from "../assets/sections/stipendije.jpg";
 
 function Stipendije() {
   const [items, setItems] = useState([]);
@@ -53,19 +55,19 @@ function Stipendije() {
 
   return (
     <MainLayout>
-      <section className="min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6 lg:p-8">
-        <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#0b3a8f]">
-          STIPENDIJE I KREDITI
-        </p>
-
-        <h1 className="mt-3 break-words text-lg font-bold text-[#10243A] md:text-2xl lg:text-[34px]">
-          Aktivni konkursi
-        </h1>
-
-        <p className="mt-2 break-words text-sm text-slate-500">
-          Pregled aktivnih stipendija i studentskih kredita.
-        </p>
-      </section>
+      <PageHero
+        eyebrow="STIPENDIJE I KREDITI"
+        title="Aktivni konkursi"
+        description="Pregled aktivnih stipendija i studentskih kredita."
+        image={stipendijeHero}
+        imageAlt="Akademska kapa i knjiga"
+        theme="sky"
+        highlights={[
+          { icon: GraduationCap, label: "Stipendije" },
+          { icon: Banknote, label: "Studentski krediti" },
+          { icon: CalendarDays, label: "Rokovi prijave" },
+        ]}
+      />
 
       <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6">
         <div className="flex flex-col gap-4 lg:flex-row">

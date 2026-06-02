@@ -7,6 +7,8 @@ import {
 
 import api from "../api/axios";
 import MainLayout from "../components/layout/MainLayout";
+import PageHero from "../components/ui/PageHero";
+import domHero from "../assets/sections/dom.jpg";
 
 const months = [
   "Januar",
@@ -123,20 +125,19 @@ function Dom() {
 
   return (
     <MainLayout>
-      <section className="min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6 lg:p-8">
-
-        <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#0b3a8f]">
-          STUDENTSKI DOM
-        </p>
-
-        <h1 className="mt-3 text-lg md:text-2xl lg:text-[34px] font-bold tracking-[-0.03em] text-[#10243A]">
-          Mjesečne obaveze
-        </h1>
-
-        <p className="mt-2 text-sm text-slate-500">
-          Klikni na mjesec i pogledaj status, iznos, uplatu i rok za plaćanje.
-        </p>
-      </section>
+      <PageHero
+        eyebrow="STUDENTSKI DOM"
+        title="Mjesečne obaveze"
+        description="Klikni na mjesec i pogledaj status, iznos, uplatu i rok za plaćanje."
+        image={domHero}
+        imageAlt="Studentski dom"
+        theme="blue"
+        highlights={[
+          { icon: Home, label: "Status smještaja" },
+          { icon: CalendarDays, label: "Mjesečni pregled" },
+          { icon: CalendarDays, label: formatDateTime(lastUpdated) },
+        ]}
+      />
 
       {message && (
         <div className="mt-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-600">

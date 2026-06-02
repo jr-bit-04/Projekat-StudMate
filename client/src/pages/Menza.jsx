@@ -11,6 +11,8 @@ import {
 
 import api from "../api/axios";
 import MainLayout from "../components/layout/MainLayout";
+import PageHero from "../components/ui/PageHero";
+import menzaHero from "../assets/sections/menza.jpg";
 
 const mealTimes = {
   dorucak: "07:00 - 09:00",
@@ -83,19 +85,19 @@ function Menza() {
 
   return (
     <MainLayout>
-      <section className="min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6 lg:p-8">
-        <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#0b3a8f]">
-          MENZA
-        </p>
-
-        <h1 className="mt-3 text-lg md:text-2xl lg:text-[34px] font-bold tracking-[-0.03em] text-[#10243A]">
-          Meni i studentski bonovi
-        </h1>
-
-        <p className="mt-2 text-sm text-slate-500">
-          Univerzitet Crne Gore - Studentski servis
-        </p>
-      </section>
+      <PageHero
+        eyebrow="MENZA"
+        title="Meni i studentski bonovi"
+        description="Univerzitet Crne Gore - Studentski servis"
+        image={menzaHero}
+        imageAlt="Studenti u menzi"
+        theme="emerald"
+        highlights={[
+          { icon: Coffee, label: "Doručak" },
+          { icon: Soup, label: "Ručak i večera" },
+          { icon: Ticket, label: "Bonovi uživo" },
+        ]}
+      />
 
       {message && (
         <div className="mt-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-600">
