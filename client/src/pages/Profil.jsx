@@ -1,17 +1,22 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BadgeCheck,
   Building2,
   GraduationCap,
   Home,
+  ImagePlus,
   KeyRound,
   Mail,
   Save,
-  User,
 } from "lucide-react";
 
 import api from "../api/axios";
 import MainLayout from "../components/layout/MainLayout";
+import Avatar from "../components/ui/Avatar";
+import useStoredUser from "../hooks/useStoredUser";
+import { setStoredAuth, updateStoredUser } from "../utils/authStorage";
+
+const MAX_AVATAR_SIZE_MB = 4;
 
 function Profil() {
   const isResetMode = useMemo(() => {
@@ -23,23 +28,41 @@ function Profil() {
     );
   }, []);
 
-  const user =
-    JSON.parse(localStorage.getItem("user")) ||
-    JSON.parse(sessionStorage.getItem("user"));
+  const user = useStoredUser();
 
   const [form, setForm] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
-
   const [message, setMessage] = useState("");
+  const [avatarData, setAvatarData] = useState("");
+  const [avatarPreview, setAvatarPreview] = useState("");
+  const [avatarName, setAvatarName] = useState("");
+  const [avatarMessage, setAvatarMessage] = useState("");
+  const [isSavingAvatar, setIsSavingAvatar] = useState(false);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const res = await api.get("/users/me");
+        updateStoredUser(res.data.user);
+      } catch {
+        // Keep the locally stored user if refreshing the profile fails.
+      }
+    };
+
+    loadProfile();
+  }, []);
 
   const rows = [
-    { label: "Ime i prezime", value: user?.name || "-", icon: User },
     { label: "Email adresa", value: user?.email || "-", icon: Mail },
     { label: "Fakultet", value: user?.faculty || "-", icon: GraduationCap },
-    { label: "Broj indeksa", value: user?.index_number || "-", icon: BadgeCheck },
+    {
+      label: "Broj indeksa",
+      value: user?.index_number || "-",
+      icon: BadgeCheck,
+    },
     { label: "Studentski dom", value: user?.dorm || "-", icon: Home },
     {
       label: "Tip naloga",
@@ -47,6 +70,71 @@ function Profil() {
       icon: Building2,
     },
   ];
+
+  const resetSelectedAvatar = () => {
+    setAvatarData("");
+    setAvatarPreview("");
+    setAvatarName("");
+  };
+
+  const handleAvatarChange = (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setAvatarMessage("Odaberi isključivo sliku.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_AVATAR_SIZE_MB * 1024 * 1024) {
+      setAvatarMessage("Profilna slika može imati najviše 4 MB.");
+      event.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      setAvatarData(String(reader.result || ""));
+      setAvatarPreview(String(reader.result || ""));
+      setAvatarName(file.name);
+      setAvatarMessage("");
+    };
+
+    reader.onerror = () => {
+      setAvatarMessage("Greška pri učitavanju slike.");
+    };
+
+    reader.readAsDataURL(file);
+    event.target.value = "";
+  };
+
+  const saveAvatar = async () => {
+    if (!avatarData) {
+      return setAvatarMessage("Odaberi novu profilnu sliku.");
+    }
+
+    try {
+      setIsSavingAvatar(true);
+      setAvatarMessage("");
+
+      const res = await api.put("/users/me/avatar", {
+        image: avatarData,
+      });
+
+      updateStoredUser(res.data.user);
+      resetSelectedAvatar();
+      setAvatarMessage(res.data.message);
+    } catch (error) {
+      setAvatarMessage(
+        error.response?.data?.message || "Greška pri čuvanju profilne slike."
+      );
+    } finally {
+      setIsSavingAvatar(false);
+    }
+  };
 
   const changePassword = async (e) => {
     e.preventDefault();
@@ -72,10 +160,11 @@ function Profil() {
 
       if (res.data.token && res.data.user) {
         sessionStorage.removeItem("passwordResetMode");
-        sessionStorage.removeItem("token");
-        sessionStorage.removeItem("user");
-        localStorage.setItem("token", res.data.token);
-        localStorage.setItem("user", JSON.stringify(res.data.user));
+        setStoredAuth({
+          token: res.data.token,
+          user: res.data.user,
+          persistent: true,
+        });
       }
 
       setMessage(res.data.message);
@@ -103,8 +192,70 @@ function Profil() {
         </h1>
 
         <p className="mt-2 break-words text-sm text-slate-500">
-          Pregled osnovnih informacija i promjena lozinke.
+          Pregled osnovnih informacija, promjena profilne slike i lozinke.
         </p>
+      </section>
+
+      <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6 lg:p-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 items-center gap-4">
+            <Avatar
+              name={user?.name}
+              src={avatarPreview || user?.profile_image_url}
+              size="xl"
+              className="border-4 border-[#0b3a8f]/10"
+            />
+
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
+                Profilna slika
+              </p>
+
+              <h2 className="mt-2 break-words text-xl font-bold text-[#10243A] md:text-2xl">
+                {user?.name || "Korisnik"}
+              </h2>
+
+              <p className="mt-1 break-words text-sm text-slate-500">
+                {user?.email || "-"}
+              </p>
+
+              <p className="mt-2 text-xs font-semibold text-slate-400">
+                JPG, PNG, WEBP ili GIF do 4 MB.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <label className="flex h-12 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] px-5 text-sm font-bold text-[#10243A] hover:border-[#0b3a8f]">
+              <ImagePlus size={18} />
+              Odaberi sliku
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                onChange={handleAvatarChange}
+                className="hidden"
+              />
+            </label>
+
+            <button
+              type="button"
+              onClick={saveAvatar}
+              disabled={!avatarData || isSavingAvatar}
+              className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#0b3a8f] px-5 text-sm font-bold text-white transition hover:bg-[#082d70] disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              <Save size={18} />
+              {isSavingAvatar ? "Čuvanje..." : "Sačuvaj sliku"}
+            </button>
+          </div>
+        </div>
+
+        {(avatarName || avatarMessage) && (
+          <div className="mt-5 rounded-2xl bg-[#0b3a8f]/10 p-4 text-sm font-bold text-[#0b3a8f]">
+            {avatarName && !avatarMessage
+              ? `Odabrano: ${avatarName}`
+              : avatarMessage}
+          </div>
+        )}
       </section>
 
       <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6">
@@ -145,7 +296,7 @@ function Profil() {
           </div>
 
           <div className="min-w-0">
-            <h2 className="text-xl md:text-2xl font-bold text-[#10243A]">
+            <h2 className="text-xl font-bold text-[#10243A] md:text-2xl">
               Promjena lozinke
             </h2>
 
@@ -157,7 +308,10 @@ function Profil() {
           </div>
         </div>
 
-        <form onSubmit={changePassword} className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <form
+          onSubmit={changePassword}
+          className="grid grid-cols-1 gap-4 md:grid-cols-3"
+        >
           {!isResetMode && (
             <PasswordInput
               placeholder="Trenutna lozinka"

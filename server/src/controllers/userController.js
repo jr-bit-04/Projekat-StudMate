@@ -1,9 +1,17 @@
 const pool = require("../config/db");
+const {
+  PROFILE_USER_COLUMNS,
+  PUBLIC_USER_COLUMNS,
+} = require("../utils/userColumns");
+const {
+  saveProfileImage,
+  removeProfileImage,
+} = require("../utils/profileImage");
 
 const getMe = async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, name, email, dorm, role, admin_module, index_number, faculty, created_at, updated_at, last_login_at
+      `SELECT ${PROFILE_USER_COLUMNS}
        FROM users
        WHERE id = $1`,
       [req.user.id]
@@ -28,7 +36,7 @@ const getAllUsers = async (req, res) => {
 
     const result = await pool.query(
       `
-      SELECT id, name, email, role, admin_module, dorm, faculty, index_number,
+      SELECT ${PUBLIC_USER_COLUMNS},
              created_at, last_login_at
       FROM users
       WHERE name ILIKE $1
@@ -94,7 +102,7 @@ const updateUser = async (req, res) => {
           index_number = $7,
           updated_at = NOW()
       WHERE id = $8
-      RETURNING id, name, email, role, admin_module, dorm, faculty, index_number
+      RETURNING ${PUBLIC_USER_COLUMNS}
       `,
       [
         name,
@@ -121,6 +129,75 @@ const updateUser = async (req, res) => {
   }
 };
 
+const updateMyProfileImage = async (req, res) => {
+  try {
+    const { image } = req.body;
+
+    if (!image) {
+      return res.status(400).json({
+        message: "Odaberi profilnu sliku prije čuvanja.",
+      });
+    }
+
+    const currentUser = await pool.query(
+      `
+      SELECT id, profile_image_path AS profile_image_url
+      FROM users
+      WHERE id = $1
+      `,
+      [req.user.id]
+    );
+
+    if (!currentUser.rows[0]) {
+      return res.status(404).json({ message: "Korisnik nije pronađen." });
+    }
+
+    const previousImage = currentUser.rows[0].profile_image_url;
+    const profileImageUrl = await saveProfileImage({
+      userId: req.user.id,
+      dataUrl: image,
+    });
+
+    try {
+      const result = await pool.query(
+        `
+        UPDATE users
+        SET profile_image_path = $1,
+            updated_at = NOW()
+        WHERE id = $2
+        RETURNING ${PROFILE_USER_COLUMNS}
+        `,
+        [profileImageUrl, req.user.id]
+      );
+
+      if (previousImage && previousImage !== profileImageUrl) {
+        await removeProfileImage(previousImage);
+      }
+
+      res.json({
+        message: "Profilna slika je uspješno sačuvana.",
+        user: result.rows[0],
+      });
+    } catch (error) {
+      await removeProfileImage(profileImageUrl).catch(() => {});
+      throw error;
+    }
+  } catch (error) {
+    const statusCode =
+      error.message?.includes("Profilna slika") ||
+      error.message?.includes("Dozvoljeni formati") ||
+      error.message?.includes("4 MB") ||
+      error.message?.includes("sliku")
+        ? 400
+        : 500;
+
+    res.status(statusCode).json({
+      message: error.message || "Greška pri čuvanju profilne slike.",
+      error: error.message,
+    });
+  }
+};
+
 const deleteUser = async (req, res) => {
   const { id } = req.params;
 
@@ -138,14 +215,31 @@ const deleteUser = async (req, res) => {
       "UPDATE obavjestenje SET created_by = NULL WHERE created_by = $1",
       [id]
     );
+
+    const userResult = await client.query(
+      `
+      SELECT id, profile_image_path AS profile_image_url
+      FROM users
+      WHERE id = $1
+      `,
+      [id]
+    );
+
     const result = await client.query(
       "DELETE FROM users WHERE id = $1 RETURNING id",
       [id]
     );
+
     await client.query("COMMIT");
 
     if (!result.rows[0]) {
       return res.status(404).json({ message: "Korisnik nije pronađen." });
+    }
+
+    if (userResult.rows[0]?.profile_image_url) {
+      await removeProfileImage(userResult.rows[0].profile_image_url).catch(
+        () => {}
+      );
     }
 
     res.json({ message: "Korisnik je obrisan." });
@@ -160,4 +254,10 @@ const deleteUser = async (req, res) => {
   }
 };
 
-module.exports = { getMe, getAllUsers, updateUser, deleteUser };
+module.exports = {
+  getMe,
+  getAllUsers,
+  updateUser,
+  deleteUser,
+  updateMyProfileImage,
+};

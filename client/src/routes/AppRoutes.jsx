@@ -25,13 +25,10 @@ import PopustiModeracija from "../pages/PopustiModeracija";
 import AdminStipendije from "../pages/AdminStipendije";
 import AdminKorisnici from "../pages/AdminKorisnici";
 import AdminApiPartneri from "../pages/AdminApiPartneri";
-
+import { getStoredUser } from "../utils/authStorage";
 
 function getUser() {
-  return (
-    JSON.parse(localStorage.getItem("user")) ||
-    JSON.parse(sessionStorage.getItem("user"))
-  );
+  return getStoredUser();
 }
 
 function ProtectedRoute({ children }) {

@@ -12,6 +12,7 @@ import {
 
 import api from "../api/axios";
 import MainLayout from "../components/layout/MainLayout";
+import Avatar from "../components/ui/Avatar";
 
 const durations = [
   { label: "30 min", value: 30 },
@@ -451,17 +452,9 @@ function AdminCitaona() {
                       Student / napomena
                     </p>
 
-                    <p className="mt-2 break-words text-sm font-bold text-[#10243A]">
-                      {item.created_by_admin
-                        ? item.admin_note || "Unos admina"
-                        : item.name || "-"}
-                    </p>
-
-                    {!item.created_by_admin && item.index_number && (
-                      <p className="mt-1 text-sm text-slate-400">
-                        {item.index_number}
-                      </p>
-                    )}
+                    <div className="mt-2">
+                      <ReservationUser item={item} />
+                    </div>
                   </div>
 
                   <StatusBadge status={item.status} />
@@ -501,19 +494,7 @@ function AdminCitaona() {
                   className="grid grid-cols-[1.3fr_1fr_1fr_1fr_1.4fr_1fr] border-t border-[#dbe4f0] bg-white"
                 >
                   <Cell>
-                    <div>
-                      <p className="font-bold text-[#10243A]">
-                        {item.created_by_admin
-                          ? item.admin_note || "Unos admina"
-                          : item.name || "-"}
-                      </p>
-
-                      {!item.created_by_admin && item.index_number && (
-                        <p className="mt-1 text-xs text-slate-400">
-                          {item.index_number}
-                        </p>
-                      )}
-                    </div>
+                    <ReservationUser item={item} compact />
                   </Cell>
 
                   <Cell>
@@ -587,6 +568,40 @@ function Cell({ children }) {
   return (
     <div className="flex min-w-0 items-center break-words border-l border-[#dbe4f0] px-4 py-4 text-sm font-semibold text-[#10243A] first:border-l-0">
       {children}
+    </div>
+  );
+}
+
+function ReservationUser({ item, compact = false }) {
+  if (item.created_by_admin) {
+    return (
+      <div>
+        <p className="font-bold text-[#10243A]">
+          {item.admin_note || "Unos admina"}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`flex min-w-0 items-center gap-3 ${compact ? "" : "pr-2"}`}>
+      <Avatar
+        name={item.name}
+        src={item.profile_image_url}
+        size="sm"
+      />
+
+      <div className="min-w-0">
+        <p className="truncate font-bold text-[#10243A]">
+          {item.name || "-"}
+        </p>
+
+        {item.index_number && (
+          <p className="mt-1 truncate text-xs text-slate-400">
+            {item.index_number}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

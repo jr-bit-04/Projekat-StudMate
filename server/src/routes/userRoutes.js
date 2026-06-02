@@ -4,12 +4,14 @@ const {
   getAllUsers,
   updateUser,
   deleteUser,
+  updateMyProfileImage,
 } = require("../controllers/userController");
 const { protect, requireGlobalAdmin } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
 router.get("/me", protect, getMe);
+router.put("/me/avatar", protect, updateMyProfileImage);
 
 router.get("/admin", protect, requireGlobalAdmin, getAllUsers);
 router.put("/admin/:id", protect, requireGlobalAdmin, updateUser);

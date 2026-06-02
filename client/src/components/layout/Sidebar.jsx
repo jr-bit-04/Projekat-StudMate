@@ -1,21 +1,20 @@
 import { NavLink } from "react-router-dom";
 import { LogOut, User, Users } from "lucide-react";
+
 import { navigation, getGlobalAdminGroups } from "../../data/navigation";
+import useStoredUser from "../../hooks/useStoredUser";
+import { clearStoredAuth } from "../../utils/authStorage";
 import ucgLogo from "../../assets/ucg-logo.png";
+import Avatar from "../ui/Avatar";
 
 function Sidebar() {
-  const user =
-    JSON.parse(localStorage.getItem("user")) ||
-    JSON.parse(sessionStorage.getItem("user"));
+  const user = useStoredUser();
 
   const isGlobalAdmin =
     user?.role === "admin" && user?.admin_module === "all";
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("user");
+    clearStoredAuth();
     window.location.href = "/login";
   };
 
@@ -78,13 +77,24 @@ function Sidebar() {
       </nav>
 
       <div className="rounded-3xl border border-white/10 bg-white/10 p-4">
-        <p className="text-sm font-black text-white">
-          {user?.name || "Korisnik"}
-        </p>
+        <div className="flex items-center gap-3">
+          <Avatar
+            name={user?.name}
+            src={user?.profile_image_url}
+            size="md"
+            className="border border-white/25"
+          />
 
-        <p className="mt-1 truncate text-xs text-blue-100">
-          {user?.email || "user@ucg.ac.me"}
-        </p>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-black text-white">
+              {user?.name || "Korisnik"}
+            </p>
+
+            <p className="mt-1 truncate text-xs text-blue-100">
+              {user?.email || "user@ucg.ac.me"}
+            </p>
+          </div>
+        </div>
 
         <button
           onClick={handleLogout}

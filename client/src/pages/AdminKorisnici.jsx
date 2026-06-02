@@ -3,6 +3,8 @@ import { Search, Pencil, Trash2, X, Save, ShieldCheck, User } from "lucide-react
 
 import api from "../api/axios";
 import MainLayout from "../components/layout/MainLayout";
+import Avatar from "../components/ui/Avatar";
+import { getStoredUser } from "../utils/authStorage";
 
 const adminModules = [
   { value: "all", label: "Globalni admin (sve)" },
@@ -17,10 +19,7 @@ const inputClass =
   "h-12 w-full rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] px-4 text-sm font-semibold outline-none focus:border-[#0b3a8f]";
 
 function getCurrentUser() {
-  return (
-    JSON.parse(localStorage.getItem("user")) ||
-    JSON.parse(sessionStorage.getItem("user"))
-  );
+  return getStoredUser();
 }
 
 function AdminKorisnici() {
@@ -158,13 +157,21 @@ function AdminKorisnici() {
                   className="grid grid-cols-[1.6fr_1fr_1.2fr_150px] border-t border-[#dbe4f0] bg-white"
                 >
                   <Cell>
-                    <div className="min-w-0">
-                      <p className="truncate font-bold text-[#10243A]">
-                        {user.name}
-                      </p>
-                      <p className="truncate text-xs text-slate-500">
-                        {user.email}
-                      </p>
+                    <div className="flex min-w-0 items-center gap-3">
+                      <Avatar
+                        name={user.name}
+                        src={user.profile_image_url}
+                        size="sm"
+                      />
+
+                      <div className="min-w-0">
+                        <p className="truncate font-bold text-[#10243A]">
+                          {user.name}
+                        </p>
+                        <p className="truncate text-xs text-slate-500">
+                          {user.email}
+                        </p>
+                      </div>
                     </div>
                   </Cell>
 

@@ -3,6 +3,7 @@ import { Search, Save, Ticket } from "lucide-react";
 
 import api from "../api/axios";
 import MainLayout from "../components/layout/MainLayout";
+import Avatar from "../components/ui/Avatar";
 
 function AdminMenzaBonovi() {
   const [search, setSearch] = useState("");
@@ -118,9 +119,21 @@ function AdminMenzaBonovi() {
                 className="grid grid-cols-[1.4fr_1fr_120px_120px_120px_120px] border-t border-[#dbe4f0] bg-white"
               >
                 <Cell>
-                  <div>
-                    <p className="font-bold text-[#10243A]">{student.name}</p>
-                    <p className="text-xs text-slate-500">{student.email}</p>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Avatar
+                      name={student.name}
+                      src={student.profile_image_url}
+                      size="sm"
+                    />
+
+                    <div className="min-w-0">
+                      <p className="truncate font-bold text-[#10243A]">
+                        {student.name}
+                      </p>
+                      <p className="truncate text-xs text-slate-500">
+                        {student.email}
+                      </p>
+                    </div>
                   </div>
                 </Cell>
 

@@ -432,6 +432,7 @@ const getAdminReservations = async (req, res) => {
         r.status,
         u.name,
         u.index_number,
+        u.profile_image_path AS profile_image_url,
         m.broj_mjesta
       FROM rezervacija r
       JOIN users u ON u.id = r.user_id

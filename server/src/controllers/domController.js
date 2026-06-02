@@ -7,7 +7,12 @@ const VALID_MONTHS = [
 
 async function ensureSameDorm(adminUser, userId) {
   const studentRes = await pool.query(
-    "SELECT id, name, email, faculty, index_number, dorm FROM users WHERE id = $1",
+    `
+    SELECT id, name, email, faculty, index_number, dorm,
+           profile_image_path AS profile_image_url
+    FROM users
+    WHERE id = $1
+    `,
     [userId]
   );
   const student = studentRes.rows[0];
@@ -108,7 +113,8 @@ const searchDomStudents = async (req, res) => {
     if (isGlobal) {
       result = await pool.query(
         `
-        SELECT id, name, email, faculty, index_number, dorm
+        SELECT id, name, email, faculty, index_number, dorm,
+               profile_image_path AS profile_image_url
         FROM users
         WHERE role = 'student'
         AND (
@@ -137,7 +143,8 @@ const searchDomStudents = async (req, res) => {
 
       result = await pool.query(
         `
-        SELECT id, name, email, faculty, index_number, dorm
+        SELECT id, name, email, faculty, index_number, dorm,
+               profile_image_path AS profile_image_url
         FROM users
         WHERE role = 'student'
         AND dorm = $1

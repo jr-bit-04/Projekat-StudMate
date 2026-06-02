@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const path = require("path");
 const healthRoutes = require("./routes/healthRoutes");
 const authRoutes = require("./routes/authRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
@@ -32,8 +33,9 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: "5mb" }));
 app.use(cookieParser());
+app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/menza", menzaRoutes);
 app.use("/api/dom", domRoutes);

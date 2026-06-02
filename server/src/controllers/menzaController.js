@@ -332,6 +332,7 @@ const searchStudentsForMenza = async (req, res) => {
         u.faculty,
         u.index_number,
         u.dorm,
+        u.profile_image_path AS profile_image_url,
         COALESCE(b.dorucak, 0) AS dorucak,
         COALESCE(b.rucak, 0) AS rucak,
         COALESCE(b.vecera, 0) AS vecera

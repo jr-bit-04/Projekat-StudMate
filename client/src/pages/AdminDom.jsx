@@ -14,6 +14,7 @@ import {
 
 import api from "../api/axios";
 import MainLayout from "../components/layout/MainLayout";
+import Avatar from "../components/ui/Avatar";
 
 const months = [
   "Januar",
@@ -66,12 +67,11 @@ function AdminDom() {
 
   const selectStudent = async (student) => {
     try {
-      setSelectedStudent(student);
-
       const res = await api.get(
         `/dom/admin/studenti/${student.id}/obaveze`
       );
 
+      setSelectedStudent(res.data.student || student);
       setObligations(res.data.obligations || []);
     } catch (error) {
       setMessage(
@@ -193,14 +193,22 @@ function AdminDom() {
                   : "border-[#dbe4f0] bg-white hover:bg-[#F8FBFF]"
               }`}
             >
-              <div>
-                <h3 className="text-lg font-bold text-[#10243A]">
-                  {student.name}
-                </h3>
+              <div className="flex min-w-0 items-center gap-3">
+                <Avatar
+                  name={student.name}
+                  src={student.profile_image_url}
+                  size="md"
+                />
 
-                <p className="mt-1 text-sm text-slate-500">
-                  {student.faculty}
-                </p>
+                <div className="min-w-0">
+                  <h3 className="truncate text-lg font-bold text-[#10243A]">
+                    {student.name}
+                  </h3>
+
+                  <p className="mt-1 truncate text-sm text-slate-500">
+                    {student.faculty}
+                  </p>
+                </div>
               </div>
 
               <div className="text-right">
@@ -224,6 +232,7 @@ function AdminDom() {
               icon={User}
               title="Student"
               value={selectedStudent.name}
+              user={selectedStudent}
             />
 
             <InfoCard
@@ -446,11 +455,22 @@ function InfoCard({
   icon: Icon,
   title,
   value,
+  user,
 }) {
   return (
     <div className="rounded-[22px] border border-[#dbe4f0] bg-white p-6 shadow-sm">
-      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0b3a8f]/10 text-[#0b3a8f]">
-        <Icon size={22} />
+      <div className="mb-4">
+        {user ? (
+          <Avatar
+            name={user.name}
+            src={user.profile_image_url}
+            size="lg"
+          />
+        ) : (
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0b3a8f]/10 text-[#0b3a8f]">
+            <Icon size={22} />
+          </div>
+        )}
       </div>
 
       <p className="text-sm font-semibold text-slate-400">

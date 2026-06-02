@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
+const { PUBLIC_USER_COLUMNS } = require("../utils/userColumns");
 
 const resetCodes = new Map();
 const RESET_CODE_TTL_MS = 15 * 60 * 1000;
@@ -116,14 +117,7 @@ const register = async (req, res) => {
       )
       VALUES ($1, $2, $3, 'student', $4, $5, $6, NULL)
       RETURNING
-        id,
-        name,
-        email,
-        role,
-        faculty,
-        dorm,
-        index_number,
-        admin_module
+        ${PUBLIC_USER_COLUMNS}
       `,
       [
         name,
@@ -166,15 +160,8 @@ const login = async (req, res) => {
     const result = await pool.query(
       `
       SELECT 
-        id,
-        name,
-        email,
-        password_hash,
-        role,
-        faculty,
-        dorm,
-        index_number,
-        admin_module
+        ${PUBLIC_USER_COLUMNS},
+        password_hash
       FROM users
       WHERE email = $1
       `,
@@ -315,7 +302,7 @@ const verifyResetCode = async (req, res) => {
 
     const result = await pool.query(
       `
-      SELECT id, name, email, role, faculty, dorm, index_number, admin_module
+      SELECT ${PUBLIC_USER_COLUMNS}
       FROM users
       WHERE id = $1
       `,
@@ -417,7 +404,7 @@ const changePassword = async (req, res) => {
     if (isPasswordReset) {
       const userResult = await pool.query(
         `
-        SELECT id, name, email, role, faculty, dorm, index_number, admin_module
+        SELECT ${PUBLIC_USER_COLUMNS}
         FROM users
         WHERE id = $1
         `,

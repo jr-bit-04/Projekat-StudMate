@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import api from "../api/axios";
+import { setStoredAuth } from "../utils/authStorage";
 import AuthLayout from "../components/layout/AuthLayout";
 import ucgLogo from "../assets/ucg-logo.png";
 
@@ -137,8 +138,11 @@ const Register = () => {
 
       const res = await api.post("/auth/register", payload);
 
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
+      setStoredAuth({
+        token: res.data.token,
+        user: res.data.user,
+        persistent: true,
+      });
 
       window.location.href = "/dashboard";
     } catch (error) {

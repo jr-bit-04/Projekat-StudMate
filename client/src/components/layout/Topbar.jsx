@@ -1,20 +1,30 @@
-﻿import { Bell, Search } from "lucide-react";
+import { Bell, Search } from "lucide-react";
+
+import useStoredUser from "../../hooks/useStoredUser";
+import Avatar from "../ui/Avatar";
 
 function Topbar() {
-  const user =
-    JSON.parse(localStorage.getItem("user")) ||
-    JSON.parse(sessionStorage.getItem("user"));
+  const user = useStoredUser();
 
   return (
     <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-      <div>
-        <h1 className="text-xl md:text-2xl lg:text-[28px] font-black tracking-[-0.04em] text-[#10243a]">
-          Dobrodošla, {user?.name?.split(" ")[0] || "Student"}
-        </h1>
+      <div className="flex items-center gap-3">
+        <Avatar
+          name={user?.name}
+          src={user?.profile_image_url}
+          size="lg"
+          className="border border-white/80"
+        />
 
-        <p className="mt-1 text-sm text-slate-500">
-          Sve studentske informacije na jednom mjestu.
-        </p>
+        <div>
+          <h1 className="text-xl font-black tracking-[-0.04em] text-[#10243a] md:text-2xl lg:text-[28px]">
+            Dobrodošla, {user?.name?.split(" ")[0] || "Student"}
+          </h1>
+
+          <p className="mt-1 text-sm text-slate-500">
+            Sve studentske informacije na jednom mjestu.
+          </p>
+        </div>
       </div>
 
       <div className="flex items-center gap-3">

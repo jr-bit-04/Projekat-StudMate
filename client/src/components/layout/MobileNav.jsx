@@ -1,11 +1,12 @@
 import { NavLink } from "react-router-dom";
 import { LogOut, User, Users } from "lucide-react";
+
 import { navigation, getGlobalAdminFlat } from "../../data/navigation";
+import useStoredUser from "../../hooks/useStoredUser";
+import { clearStoredAuth } from "../../utils/authStorage";
 
 function MobileNav() {
-  const user =
-    JSON.parse(localStorage.getItem("user")) ||
-    JSON.parse(sessionStorage.getItem("user"));
+  const user = useStoredUser();
 
   const isGlobalAdmin =
     user?.role === "admin" && user?.admin_module === "all";
@@ -28,10 +29,7 @@ function MobileNav() {
       });
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("user");
+    clearStoredAuth();
     window.location.href = "/login";
   };
 
