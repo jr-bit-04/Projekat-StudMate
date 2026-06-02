@@ -5,6 +5,26 @@ function generateApiKey() {
   return crypto.randomBytes(24).toString("hex");
 }
 
+function normalizeWebsiteUrl(value) {
+  if (!value) return null;
+
+  const trimmed = String(value).trim();
+  if (!trimmed) return null;
+
+  const withProtocol = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+
+  try {
+    const url = new URL(withProtocol);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 const getPopustiData = async (req, res) => {
   try {
     const popusti = await pool.query(`
@@ -154,6 +174,13 @@ const createPartnerPortalSubmission = async (req, res) => {
       });
     }
 
+    const normalizedWebsite = normalizeWebsiteUrl(website);
+    if (website && !normalizedWebsite) {
+      return res.status(400).json({
+        message: "Nevažeći link za sajt partnera.",
+      });
+    }
+
     let partner = await pool.query(
       `SELECT * FROM partner WHERE LOWER(naziv) = LOWER($1) LIMIT 1`,
       [naziv]
@@ -172,7 +199,7 @@ const createPartnerPortalSubmission = async (req, res) => {
         VALUES ($1, $2, $3, $4, 'portal', 'active', NOW())
         RETURNING *
         `,
-        [naziv, logo_url || null, website || null, kontakt_email]
+        [naziv, logo_url || null, normalizedWebsite, kontakt_email]
       );
 
       partnerId = createdPartner.rows[0].id;
@@ -337,6 +364,13 @@ const createApiPartner = async (req, res) => {
       return res.status(400).json({ message: "Naziv partnera je obavezan." });
     }
 
+    const normalizedWebsite = normalizeWebsiteUrl(website);
+    if (website && !normalizedWebsite) {
+      return res.status(400).json({
+        message: "Nevažeći link za sajt partnera.",
+      });
+    }
+
     const apiKey = generateApiKey();
 
     const result = await pool.query(
@@ -347,7 +381,13 @@ const createApiPartner = async (req, res) => {
       VALUES ($1,$2,$3,$4,'api',$5,'active',NOW())
       RETURNING *
       `,
-      [naziv, website || null, logo_url || null, kontakt_email || null, apiKey]
+      [
+        naziv,
+        normalizedWebsite,
+        logo_url || null,
+        kontakt_email || null,
+        apiKey,
+      ]
     );
 
     res.status(201).json({

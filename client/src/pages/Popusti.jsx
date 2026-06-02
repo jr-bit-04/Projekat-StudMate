@@ -340,37 +340,56 @@ function Popusti() {
               </h2>
             </div>
 
-            <div className="mt-5 space-y-3">
-              {partneri.map((partner) => (
-                <a
-                  key={partner.id}
-                  href={partner.website || "#"}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] p-4 transition hover:bg-[#0b3a8f]/10"
-                >
-                  <div className="min-w-0">
-                    <p className="break-words font-bold text-[#10243A]">
-                      {partner.naziv}
-                    </p>
+	            <div className="mt-5 space-y-3">
+	              {partneri.map((partner) => {
+	                const website = normalizeUrl(partner.website);
+	                const Wrapper = website ? "a" : "div";
 
-                    {partner.website && (
-                      <p className="mt-1 break-all text-xs text-slate-400">
-                        {partner.website}
-                      </p>
-                    )}
-                  </div>
+	                return (
+	                  <Wrapper
+	                    key={partner.id}
+	                    {...(website
+	                      ? {
+	                          href: website,
+	                          target: "_blank",
+	                          rel: "noreferrer",
+	                        }
+	                      : {})}
+	                    className={`flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] p-4 transition ${
+	                      website
+	                        ? "hover:bg-[#0b3a8f]/10"
+	                        : "opacity-70"
+	                    }`}
+	                  >
+	                    <div className="min-w-0">
+	                      <p className="break-words font-bold text-[#10243A]">
+	                        {partner.naziv}
+	                      </p>
 
-                  <ExternalLink
-                    size={18}
-                    className="shrink-0 text-[#0b3a8f]"
-                  />
-                </a>
-              ))}
-            </div>
-          </div>
-        </aside>
-      </section>
+	                      {website ? (
+	                        <p className="mt-1 break-all text-xs text-slate-400">
+	                          {website}
+	                        </p>
+	                      ) : (
+	                        <p className="mt-1 text-xs text-slate-400">
+	                          Link nije dostupan
+	                        </p>
+	                      )}
+	                    </div>
+
+	                    {website && (
+	                      <ExternalLink
+	                        size={18}
+	                        className="shrink-0 text-[#0b3a8f]"
+	                      />
+	                    )}
+	                  </Wrapper>
+	                );
+	              })}
+	            </div>
+	          </div>
+	        </aside>
+	      </section>
 
       {selected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
@@ -499,6 +518,25 @@ function isExpired(date) {
   if (!date) return false;
 
   return new Date(date) < new Date();
+}
+
+function normalizeUrl(value) {
+  if (!value) return null;
+
+  const trimmed = String(value).trim();
+  if (!trimmed) return null;
+
+  const withProtocol = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+
+  try {
+    const url = new URL(withProtocol);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
 }
 
 export default Popusti;

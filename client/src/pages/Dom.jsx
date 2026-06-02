@@ -2,8 +2,6 @@
 import {
   AlertCircle,
   CalendarDays,
-  CheckCircle2,
-  Clock3,
   Home,
 } from "lucide-react";
 
@@ -28,6 +26,7 @@ const months = [
 function Dom() {
   const [obligations, setObligations] = useState([]);
   const [obavjestenja, setObavjestenja] = useState([]);
+  const [lastUpdated, setLastUpdated] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState("Januar");
   const [showNotices, setShowNotices] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -42,8 +41,53 @@ function Dom() {
       try {
         const res = await api.get("/dom");
 
-        setObligations(res.data.obligations || []);
-        setObavjestenja(res.data.obavjestenja || []);
+        const nextObligations = res.data.obligations || [];
+        setObligations(nextObligations);
+        const nextNotices = res.data.obavjestenja || [];
+        setObavjestenja(nextNotices);
+
+        const apiLastUpdated = res.data.lastUpdated || null;
+        if (apiLastUpdated) {
+          setLastUpdated(apiLastUpdated);
+        } else {
+          const computedFromObligations = nextObligations.reduce(
+            (latest, item) => {
+              const value = item?.updated_at || item?.created_at;
+              if (!value) return latest;
+
+              const time = new Date(value).getTime();
+              if (Number.isNaN(time)) return latest;
+
+              if (!latest) return value;
+              return time > new Date(latest).getTime() ? value : latest;
+            },
+            null
+          );
+
+          const computedFromNotices = nextNotices.reduce((latest, item) => {
+            const value = item?.datum_vrijeme;
+            if (!value) return latest;
+
+            const time = new Date(value).getTime();
+            if (Number.isNaN(time)) return latest;
+
+            if (!latest) return value;
+            return time > new Date(latest).getTime() ? value : latest;
+          }, null);
+
+          const candidates = [computedFromObligations, computedFromNotices].filter(
+            Boolean
+          );
+
+          if (candidates.length) {
+            const latest = candidates.reduce((a, b) =>
+              new Date(a).getTime() >= new Date(b).getTime() ? a : b
+            );
+            setLastUpdated(latest);
+          } else {
+            setLastUpdated(new Date().toISOString());
+          }
+        }
       } catch (error) {
         setMessage(
           error.response?.data?.message ||
@@ -172,9 +216,7 @@ function Dom() {
         <InfoCard
           icon={CalendarDays}
           title="Poslednje ažurirano"
-          value={formatDateTime(
-            selectedObligation?.updated_at
-          )}
+          value={formatDateTime(lastUpdated)}
         />
       </section>
 

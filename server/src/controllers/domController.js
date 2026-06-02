@@ -57,6 +57,18 @@ const getDomData = async (req, res) => {
       [req.user.id]
     );
 
+    const lastUpdatedRes = await pool.query(
+      `
+      SELECT
+        GREATEST(
+          (SELECT MAX(COALESCE(updated_at, created_at)) FROM dom_obaveza WHERE user_id = $1),
+          (SELECT MAX(datum_vrijeme) FROM obavjestenje WHERE modul = 'dom'),
+          (SELECT last_updated FROM module_last_update WHERE module = 'dom')
+        ) AS last_updated
+      `,
+      [req.user.id]
+    );
+
     const obavjestenja = await pool.query(
       `
       SELECT id, naslov, opis, kategorija, datum_vrijeme
@@ -67,9 +79,16 @@ const getDomData = async (req, res) => {
       `
     );
 
+    await pool.query(`
+      UPDATE module_last_update
+      SET last_updated = NOW()
+      WHERE module = 'dom'
+    `);
+
     res.json({
       obligations: obligations.rows,
       obavjestenja: obavjestenja.rows,
+      lastUpdated: lastUpdatedRes.rows[0]?.last_updated || null,
     });
   } catch (error) {
     res.status(500).json({
@@ -281,6 +300,12 @@ const deleteStudentDomObligation = async (req, res) => {
 
     await pool.query("DELETE FROM dom_obaveza WHERE id = $1", [id]);
 
+    await pool.query(`
+      UPDATE module_last_update
+      SET last_updated = NOW()
+      WHERE module = 'dom'
+    `);
+
     res.json({ message: "Obaveza je obrisana." });
   } catch (error) {
     res.status(500).json({
@@ -328,6 +353,12 @@ const saveDomNotice = async (req, res) => {
       `,
       [naslov, opis, kategorija || "Dom", priority || 1, pinned || false]
     );
+
+    await pool.query(`
+      UPDATE module_last_update
+      SET last_updated = NOW()
+      WHERE module = 'dom'
+    `);
 
     res.status(201).json({
       message: "Obavještenje je uspješno dodato.",
