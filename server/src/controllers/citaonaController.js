@@ -3,8 +3,14 @@ const {
   CITAONA_LOCATION,
   calculateDistanceMeters,
 } = require("../utils/citaonaTracking");
+const {
+  isExpoPushToken,
+  saveUserPushToken,
+  sendPushToUsers,
+} = require("../utils/pushNotifications");
 
 const durations = [30, 60, 90, 120, 150, 180, 210, 240, 270, 300];
+const OUTSIDE_WARNING_LEAD_MINUTES = 15;
 
 function generateCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -167,6 +173,56 @@ function getRemainingGraceMinutes(outsideSince) {
     CITAONA_LOCATION.graceMinutes * 60 * 1000 - Math.max(0, elapsedMs);
 
   return Math.max(0, Math.ceil(remainingMs / 60000));
+}
+
+function shouldSendOutsideWarning(reservation) {
+  if (
+    !reservation ||
+    reservation.status !== "active" ||
+    !reservation.outside_since ||
+    reservation.outside_warning_sent_at
+  ) {
+    return false;
+  }
+
+  const warningLeadMinutes = Math.min(
+    OUTSIDE_WARNING_LEAD_MINUTES,
+    CITAONA_LOCATION.graceMinutes
+  );
+  const elapsedMs = Date.now() - new Date(reservation.outside_since).getTime();
+  const warningThresholdMs = Math.max(
+    0,
+    (CITAONA_LOCATION.graceMinutes - warningLeadMinutes) * 60 * 1000
+  );
+  const cancelThresholdMs = CITAONA_LOCATION.graceMinutes * 60 * 1000;
+
+  return elapsedMs >= warningThresholdMs && elapsedMs < cancelThresholdMs;
+}
+
+async function sendCitaonaOutsideWarning(userId, reservation) {
+  const remainingMinutes = getRemainingGraceMinutes(reservation.outside_since);
+
+  return sendPushToUsers([userId], {
+    title: "Vrati se u citaonicu",
+    body: `Van si dozvoljenog radijusa. Rezervacija istice za oko ${remainingMinutes} min ako se ne vratis na vrijeme.`,
+    data: {
+      type: "citaona_outside_warning",
+      reservationId: reservation.id,
+      remainingGraceMinutes: remainingMinutes,
+    },
+  });
+}
+
+async function sendCitaonaAutoCancelNotification(userId, reservation) {
+  return sendPushToUsers([userId], {
+    title: "Rezervacija je otkazana",
+    body: "Rezervacija u citaonici je automatski otkazana jer si bio van dozvoljenog radijusa duze od dozvoljenog vremena.",
+    data: {
+      type: "citaona_auto_cancelled",
+      reservationId: reservation.id,
+      cancellationReason: reservation.cancellation_reason || null,
+    },
+  });
 }
 
 function mapReservation(row) {
@@ -599,6 +655,7 @@ const confirmReservationCode = async (req, res) => {
       SET status = 'active',
           checked_in_at = NOW(),
           outside_since = NULL,
+          outside_warning_sent_at = NULL,
           last_location_at = NULL,
           last_latitude = NULL,
           last_longitude = NULL,
@@ -708,6 +765,53 @@ const getTrackingStatus = async (req, res) => {
   }
 };
 
+const registerPushToken = async (req, res) => {
+  try {
+    const {
+      expo_push_token,
+      expoPushToken,
+      device_platform,
+      devicePlatform,
+      enabled,
+    } = req.body || {};
+
+    const rawToken = expo_push_token ?? expoPushToken ?? "";
+    const normalizedToken = String(rawToken || "").trim();
+    const pushEnabled =
+      enabled === undefined
+        ? true
+        : enabled === true ||
+          enabled === "true" ||
+          enabled === 1 ||
+          enabled === "1";
+
+    if (pushEnabled && !isExpoPushToken(normalizedToken)) {
+      return res.status(400).json({
+        message: "Expo push token nije validan.",
+      });
+    }
+
+    const savedToken = await saveUserPushToken({
+      userId: req.user.id,
+      expoPushToken: normalizedToken,
+      devicePlatform: device_platform || devicePlatform || null,
+      enabled: pushEnabled,
+    });
+
+    res.json({
+      message: pushEnabled
+        ? "Push token je uspjesno sacuvan."
+        : "Push notifikacije su uspjesno iskljucene.",
+      push_token: savedToken,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Greska pri cuvanju push tokena.",
+      error: error.message,
+    });
+  }
+};
+
 const receiveTrackingPing = async (req, res) => {
   try {
     const { reservation_id, latitude, longitude, accuracy_meters } = req.body;
@@ -751,6 +855,7 @@ const receiveTrackingPing = async (req, res) => {
         status,
         tracking_enabled,
         outside_since,
+        outside_warning_sent_at,
         last_location_at,
         last_distance_meters,
         cancellation_reason
@@ -811,6 +916,7 @@ const receiveTrackingPing = async (req, res) => {
         `
         UPDATE rezervacija
         SET outside_since = NULL,
+            outside_warning_sent_at = NULL,
             last_location_at = NOW(),
             last_latitude = $2,
             last_longitude = $3,
@@ -825,6 +931,7 @@ const receiveTrackingPing = async (req, res) => {
         `
         UPDATE rezervacija
         SET outside_since = NULL,
+            outside_warning_sent_at = NULL,
             last_location_at = NOW(),
             last_latitude = $2,
             last_longitude = $3,
@@ -864,6 +971,30 @@ const receiveTrackingPing = async (req, res) => {
     }
 
     const updatedReservation = mapReservation(result.rows[0]);
+
+    if (updatedReservation.status === "cancelled") {
+      try {
+        await sendCitaonaAutoCancelNotification(req.user.id, updatedReservation);
+      } catch (pushError) {
+        console.error("GreÅ¡ka pri slanju push obavjeÅ¡tenja za auto-otkazivanje:", pushError.message);
+      }
+    } else if (shouldSendOutsideWarning(updatedReservation)) {
+      try {
+        await sendCitaonaOutsideWarning(req.user.id, updatedReservation);
+        await pool.query(
+          `
+          UPDATE rezervacija
+          SET outside_warning_sent_at = NOW()
+          WHERE id = $1
+            AND outside_warning_sent_at IS NULL
+          `,
+          [updatedReservation.id]
+        );
+        updatedReservation.outside_warning_sent_at = new Date().toISOString();
+      } catch (pushError) {
+        console.error("GreÅ¡ka pri slanju push upozorenja za Äitaonicu:", pushError.message);
+      }
+    }
 
     res.json({
       message:
@@ -1034,6 +1165,7 @@ module.exports = {
   cancelReservation,
   clearReservationHistory,
   getTrackingStatus,
+  registerPushToken,
   receiveTrackingPing,
   getAdminReservations,
   createAdminReservation,

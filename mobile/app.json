@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "StudMate Mobile",
+    "slug": "studmate-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "studmate",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#f4efe4"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#f4efe4"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
+

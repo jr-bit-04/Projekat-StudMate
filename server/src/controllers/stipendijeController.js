@@ -1,4 +1,50 @@
 const pool = require("../config/db");
+const { broadcastPushToStudents } = require("../utils/pushNotifications");
+
+function shouldNotifyStudentsAboutScholarship(konkurs) {
+  if (!konkurs || konkurs.push_notified_at || konkurs.aktivan !== true) {
+    return false;
+  }
+
+  if (!konkurs.rok) {
+    return true;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const deadline = new Date(konkurs.rok);
+  deadline.setHours(0, 0, 0, 0);
+
+  return deadline.getTime() >= today.getTime();
+}
+
+async function notifyStudentsAboutScholarship(konkurs) {
+  if (!shouldNotifyStudentsAboutScholarship(konkurs)) {
+    return;
+  }
+
+  await broadcastPushToStudents({
+    title: "Nova stipendija je dostupna",
+    body: `${konkurs.naslov} je upravo objavljena u StudMate aplikaciji.`,
+    data: {
+      type: "scholarship_published",
+      scholarshipId: konkurs.id,
+      institution: konkurs.institucija || null,
+    },
+  });
+
+  await pool.query(
+    `
+    UPDATE stipendija
+    SET push_notified_at = NOW(),
+        updated_at = NOW()
+    WHERE id = $1
+      AND push_notified_at IS NULL
+    `,
+    [konkurs.id]
+  );
+}
 
 const getStipendije = async (req, res) => {
   try {
@@ -15,7 +61,7 @@ const getStipendije = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
-      message: "Greška pri učitavanju konkursa.",
+      message: "Greska pri ucitavanju konkursa.",
       error: error.message,
     });
   }
@@ -34,7 +80,7 @@ const getAdminStipendije = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
-      message: "Greška pri učitavanju admin konkursa.",
+      message: "Greska pri ucitavanju admin konkursa.",
       error: error.message,
     });
   }
@@ -61,7 +107,7 @@ const createStipendija = async (req, res) => {
 
     if (String(rok).slice(0, 10) < new Date().toLocaleDateString("en-CA")) {
       return res.status(400).json({
-        message: "Rok ne može biti u prošlosti.",
+        message: "Rok ne moze biti u proslosti.",
       });
     }
 
@@ -95,12 +141,21 @@ const createStipendija = async (req, res) => {
     );
 
     res.status(201).json({
-      message: "Konkurs uspješno dodat.",
+      message: "Konkurs uspjesno dodat.",
       konkurs: result.rows[0],
     });
+
+    try {
+      await notifyStudentsAboutScholarship(result.rows[0]);
+    } catch (pushError) {
+      console.error(
+        "Greska pri slanju push obavjestenja za novi konkurs:",
+        pushError.message
+      );
+    }
   } catch (error) {
     res.status(500).json({
-      message: "Greška pri dodavanju konkursa.",
+      message: "Greska pri dodavanju konkursa.",
       error: error.message,
     });
   }
@@ -120,13 +175,12 @@ const updateStipendija = async (req, res) => {
       link,
       aktivan,
     } = req.body;
-    
+
     if (!naslov || !institucija || !tip || !opis || !rok) {
       return res.status(400).json({
         message: "Sva obavezna polja moraju biti popunjena.",
       });
     }
-
 
     const result = await pool.query(
       `
@@ -158,17 +212,26 @@ const updateStipendija = async (req, res) => {
 
     if (!result.rows[0]) {
       return res.status(404).json({
-        message: "Konkurs nije pronađen.",
+        message: "Konkurs nije pronadjen.",
       });
     }
 
     res.json({
-      message: "Konkurs uspješno izmijenjen.",
+      message: "Konkurs uspjesno izmijenjen.",
       konkurs: result.rows[0],
     });
+
+    try {
+      await notifyStudentsAboutScholarship(result.rows[0]);
+    } catch (pushError) {
+      console.error(
+        "Greska pri slanju push obavjestenja za izmijenjeni konkurs:",
+        pushError.message
+      );
+    }
   } catch (error) {
     res.status(500).json({
-      message: "Greška pri izmjeni konkursa.",
+      message: "Greska pri izmjeni konkursa.",
       error: error.message,
     });
   }
@@ -189,7 +252,7 @@ const deleteStipendija = async (req, res) => {
 
     if (!result.rows[0]) {
       return res.status(404).json({
-        message: "Konkurs nije pronađen.",
+        message: "Konkurs nije pronadjen.",
       });
     }
 
@@ -198,7 +261,7 @@ const deleteStipendija = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
-      message: "Greška pri brisanju konkursa.",
+      message: "Greska pri brisanju konkursa.",
       error: error.message,
     });
   }

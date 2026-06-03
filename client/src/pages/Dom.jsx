@@ -8,6 +8,7 @@ import {
 import api from "../api/axios";
 import MainLayout from "../components/layout/MainLayout";
 import PageHero from "../components/ui/PageHero";
+import useStoredUser from "../hooks/useStoredUser";
 import domHero from "../assets/sections/dom.jpg";
 
 const months = [
@@ -34,9 +35,7 @@ function Dom() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
-  const user =
-    JSON.parse(localStorage.getItem("user")) ||
-    JSON.parse(sessionStorage.getItem("user"));
+  const user = useStoredUser();
 
   useEffect(() => {
     const fetchDom = async () => {

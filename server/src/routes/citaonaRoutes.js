@@ -8,6 +8,7 @@ const {
   clearReservationHistory,
   getTrackingStatus,
   receiveTrackingPing,
+  registerPushToken,
   getAdminReservations,
   createAdminReservation,
 } = require("../controllers/citaonaController");
@@ -24,6 +25,7 @@ router.get("/", protect, getCitaonaData);
 router.post("/rezervacija", protect, createReservation);
 router.get("/tracking/active", protect, getTrackingStatus);
 router.post("/tracking/ping", protect, receiveTrackingPing);
+router.post("/push-token", protect, registerPushToken);
 
 router.delete("/rezervacije/istorija", protect, clearReservationHistory);
 

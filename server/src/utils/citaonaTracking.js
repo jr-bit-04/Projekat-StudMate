@@ -1,11 +1,17 @@
 const pool = require("../config/db");
 
+function parsePositiveInt(value, fallback) {
+  const parsed = Number.parseInt(value, 10);
+
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 const CITAONA_LOCATION = {
   address: "2 Cetinjski Put, Podgorica 81000, Crna Gora",
   latitude: 42.44306,
   longitude: 19.24028,
-  radiusMeters: 30,
-  graceMinutes: 60,
+  radiusMeters: parsePositiveInt(process.env.CITAONA_RADIUS_METERS, 120),
+  graceMinutes: parsePositiveInt(process.env.CITAONA_GRACE_MINUTES, 60),
 };
 
 async function ensureCitaonaTrackingSupport() {
@@ -52,6 +58,11 @@ async function ensureCitaonaTrackingSupport() {
   await pool.query(`
     ALTER TABLE rezervacija
     ADD COLUMN IF NOT EXISTS auto_cancelled_at TIMESTAMPTZ
+  `);
+
+  await pool.query(`
+    ALTER TABLE rezervacija
+    ADD COLUMN IF NOT EXISTS outside_warning_sent_at TIMESTAMPTZ
   `);
 
   await pool.query(`

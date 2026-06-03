@@ -25,16 +25,14 @@ import PopustiModeracija from "../pages/PopustiModeracija";
 import AdminStipendije from "../pages/AdminStipendije";
 import AdminKorisnici from "../pages/AdminKorisnici";
 import AdminApiPartneri from "../pages/AdminApiPartneri";
-import { getStoredUser } from "../utils/authStorage";
+import { getStoredToken, getStoredUser } from "../utils/authStorage";
 
 function getUser() {
   return getStoredUser();
 }
 
 function ProtectedRoute({ children }) {
-  const token =
-    localStorage.getItem("token") ||
-    sessionStorage.getItem("token");
+  const token = getStoredToken();
 
   return token ? children : <Navigate to="/login" replace />;
 }

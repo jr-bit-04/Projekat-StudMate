@@ -6,6 +6,7 @@ const app = require("./app");
 const initDb = require("./config/initDb");
 const { ensureProfileImageSupport } = require("./utils/profileImage");
 const { ensureCitaonaTrackingSupport } = require("./utils/citaonaTracking");
+const { ensurePushNotificationSupport } = require("./utils/pushNotifications");
 
 const PORT = process.env.PORT || 5000;
 
@@ -14,6 +15,7 @@ async function startServer() {
     await initDb();
     await ensureProfileImageSupport();
     await ensureCitaonaTrackingSupport();
+    await ensurePushNotificationSupport();
 
     app.listen(PORT, () => {
       console.log(`Server radi na portu ${PORT}`);
