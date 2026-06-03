@@ -1,4 +1,8 @@
 const pool = require("../config/db");
+const {
+  CITAONA_LOCATION,
+  calculateDistanceMeters,
+} = require("../utils/citaonaTracking");
 
 const durations = [30, 60, 90, 120, 150, 180, 210, 240, 270, 300];
 
@@ -6,44 +10,79 @@ function generateCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-function isWorkingTime(dateValue, timeFrom, timeTo) {
-  const date = new Date(dateValue);
-  const day = date.getDay();
-
-  if (day === 0) return false;
-
-  const from = timeToMinutes(timeFrom);
-  const to = timeToMinutes(timeTo);
-
-  if (day === 6) {
-    return from >= 420 && to <= 900;
-  }
-
-  return from >= 420 && to <= 1260;
-}
-
 function timeToMinutes(value) {
-  const [hours, minutes] = value.split(":").map(Number);
+  const [hours, minutes] = String(value).split(":").map(Number);
   return hours * 60 + minutes;
 }
 
-function addMinutesToTime(time, minutesToAdd) {
-  const total = timeToMinutes(time) + minutesToAdd;
-
-  const hours = Math.floor(total / 60);
-  const minutes = total % 60;
+function minutesToTime(totalMinutes) {
+  const normalized = Math.max(0, totalMinutes);
+  const hours = Math.floor(normalized / 60);
+  const minutes = normalized % 60;
 
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
-function isPastTime(dateValue, timeFrom) {
+function addMinutesToTime(time, minutesToAdd) {
+  return minutesToTime(timeToMinutes(time) + minutesToAdd);
+}
+
+function isSameLocalDate(dateValue, compareDate = new Date()) {
   const selected = new Date(dateValue);
   selected.setHours(0, 0, 0, 0);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const current = new Date(compareDate);
+  current.setHours(0, 0, 0, 0);
 
-  if (selected.getTime() !== today.getTime()) return false;
+  return selected.getTime() === current.getTime();
+}
+
+function getWorkingHours(dateValue) {
+  const date = new Date(dateValue);
+  const day = date.getDay();
+
+  if (day === 0) {
+    return {
+      isOpen: false,
+      open: null,
+      close: null,
+      openMinutes: null,
+      closeMinutes: null,
+    };
+  }
+
+  if (day === 6) {
+    return {
+      isOpen: true,
+      open: "07:00",
+      close: "15:00",
+      openMinutes: 420,
+      closeMinutes: 900,
+    };
+  }
+
+  return {
+    isOpen: true,
+    open: "07:00",
+    close: "21:00",
+    openMinutes: 420,
+    closeMinutes: 1260,
+  };
+}
+
+function isWorkingTime(dateValue, timeFrom, timeTo) {
+  const hours = getWorkingHours(dateValue);
+
+  if (!hours.isOpen) return false;
+
+  const from = timeToMinutes(timeFrom);
+  const to = timeToMinutes(timeTo);
+
+  return from >= hours.openMinutes && to <= hours.closeMinutes && to > from;
+}
+
+function isPastTime(dateValue, timeFrom) {
+  if (!isSameLocalDate(dateValue)) return false;
 
   const now = new Date();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
@@ -61,7 +100,117 @@ function isTodayOrTomorrow(dateValue) {
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
 
-  return selected.getTime() === today.getTime() || selected.getTime() === tomorrow.getTime();
+  return (
+    selected.getTime() === today.getTime() ||
+    selected.getTime() === tomorrow.getTime()
+  );
+}
+
+function getTrackingWindow(dateValue) {
+  const hours = getWorkingHours(dateValue);
+
+  if (!hours.isOpen) {
+    return null;
+  }
+
+  let startMinutes = hours.openMinutes;
+
+  if (isSameLocalDate(dateValue)) {
+    const now = new Date();
+    startMinutes = Math.max(
+      startMinutes,
+      now.getHours() * 60 + now.getMinutes()
+    );
+  }
+
+  if (startMinutes >= hours.closeMinutes) {
+    return null;
+  }
+
+  return {
+    vrijeme_od: minutesToTime(startMinutes),
+    vrijeme_do: hours.close,
+    full_day: true,
+  };
+}
+
+function getReservationWindow({
+  trackingEnabled,
+  datum,
+  vrijemeOd,
+  trajanje,
+}) {
+  if (trackingEnabled) {
+    return getTrackingWindow(datum);
+  }
+
+  if (!durations.includes(Number(trajanje))) {
+    return null;
+  }
+
+  return {
+    vrijeme_od: vrijemeOd,
+    vrijeme_do: addMinutesToTime(vrijemeOd, Number(trajanje)),
+    full_day: false,
+  };
+}
+
+function getNowIsoDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getRemainingGraceMinutes(outsideSince) {
+  if (!outsideSince) return CITAONA_LOCATION.graceMinutes;
+
+  const elapsedMs = Date.now() - new Date(outsideSince).getTime();
+  const remainingMs =
+    CITAONA_LOCATION.graceMinutes * 60 * 1000 - Math.max(0, elapsedMs);
+
+  return Math.max(0, Math.ceil(remainingMs / 60000));
+}
+
+function mapReservation(row) {
+  if (!row) return row;
+
+  return {
+    ...row,
+    tracking_enabled: row.tracking_enabled === true,
+    remaining_grace_minutes:
+      row.tracking_enabled && row.status === "active"
+        ? getRemainingGraceMinutes(row.outside_since)
+        : null,
+  };
+}
+
+function isReservationInTrackingWindow(reservation) {
+  if (!reservation || !["pending", "active"].includes(reservation.status)) {
+    return false;
+  }
+
+  if (!isSameLocalDate(reservation.datum)) return false;
+
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const from = timeToMinutes(reservation.vrijeme_od);
+  const to = timeToMinutes(reservation.vrijeme_do);
+
+  return nowMinutes >= from && nowMinutes <= to;
+}
+
+async function getCurrentUser(userId) {
+  const result = await pool.query(
+    `
+    SELECT
+      id,
+      role,
+      COALESCE(location_tracking_consent, false) AS location_tracking_consent
+    FROM users
+    WHERE id = $1
+    `,
+    [userId]
+  );
+
+  return result.rows[0] || null;
 }
 
 async function markExpiredReservations() {
@@ -84,6 +233,42 @@ async function markExpiredReservations() {
   );
 }
 
+async function getActiveTrackingReservation(userId) {
+  await markExpiredReservations();
+
+  const result = await pool.query(
+    `
+    SELECT
+      id,
+      kod,
+      datum,
+      vrijeme_od,
+      vrijeme_do,
+      status,
+      tracking_enabled,
+      outside_since,
+      last_location_at,
+      last_distance_meters,
+      cancellation_reason
+    FROM rezervacija
+    WHERE user_id = $1
+      AND tracking_enabled = true
+      AND status IN ('pending', 'active')
+      AND datum = CURRENT_DATE
+    ORDER BY CASE WHEN status = 'active' THEN 0 ELSE 1 END, vrijeme_od ASC
+    LIMIT 1
+    `,
+    [userId]
+  );
+
+  const reservation = mapReservation(result.rows[0] || null);
+
+  return {
+    reservation,
+    shouldTrack: isReservationInTrackingWindow(reservation),
+  };
+}
+
 const getCitaonaData = async (req, res) => {
   try {
     await markExpiredReservations();
@@ -91,11 +276,25 @@ const getCitaonaData = async (req, res) => {
     const datum = req.query.datum || new Date().toISOString().slice(0, 10);
     const vrijemeOd = req.query.vrijeme_od || "07:00";
     const trajanje = Number(req.query.trajanje || 60);
-    const vrijemeDo = addMinutesToTime(vrijemeOd, trajanje);
 
-    if (!durations.includes(trajanje)) {
-      return res.status(400).json({ message: "Nevažeće trajanje rezervacije." });
+    const user = await getCurrentUser(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "Korisnik nije pronađen." });
     }
+
+    const trackingEnabled = user.location_tracking_consent === true;
+    const reservationWindow = getReservationWindow({
+      trackingEnabled,
+      datum,
+      vrijemeOd,
+      trajanje,
+    });
+
+    const effectiveVrijemeOd = reservationWindow?.vrijeme_od || vrijemeOd;
+    const effectiveVrijemeDo =
+      reservationWindow?.vrijeme_do ||
+      addMinutesToTime(vrijemeOd, durations.includes(trajanje) ? trajanje : 60);
 
     const mjesta = await pool.query(
       `
@@ -114,12 +313,12 @@ const getCitaonaData = async (req, res) => {
       AND vrijeme_od < $3
       AND vrijeme_do > $2
       `,
-      [datum, vrijemeOd, vrijemeDo]
+      [datum, effectiveVrijemeOd, effectiveVrijemeDo]
     );
 
     const mojeRezervacije = await pool.query(
       `
-      SELECT 
+      SELECT
         r.id,
         r.kod,
         r.datum,
@@ -129,6 +328,12 @@ const getCitaonaData = async (req, res) => {
         r.created_at,
         r.checked_in_at,
         r.expires_at,
+        r.tracking_enabled,
+        r.outside_since,
+        r.last_location_at,
+        r.last_distance_meters,
+        r.auto_cancelled_at,
+        r.cancellation_reason,
         m.broj_mjesta
       FROM rezervacija r
       JOIN mjesto m ON m.id = r.mjesto_id
@@ -151,6 +356,12 @@ const getCitaonaData = async (req, res) => {
         r.created_at,
         r.checked_in_at,
         r.expires_at,
+        r.tracking_enabled,
+        r.outside_since,
+        r.last_location_at,
+        r.last_distance_meters,
+        r.auto_cancelled_at,
+        r.cancellation_reason,
         m.broj_mjesta
       FROM rezervacija r
       JOIN mjesto m ON m.id = r.mjesto_id
@@ -169,10 +380,18 @@ const getCitaonaData = async (req, res) => {
 
     res.json({
       mjesta: mappedMjesta,
-      rezervacije: mojeRezervacije.rows,
-      istorija: istorija.rows,
-      vrijeme_do: vrijemeDo,
-      radi: isWorkingTime(datum, vrijemeOd, vrijemeDo),
+      rezervacije: mojeRezervacije.rows.map(mapReservation),
+      istorija: istorija.rows.map(mapReservation),
+      vrijeme_do: effectiveVrijemeDo,
+      radi: isWorkingTime(datum, effectiveVrijemeOd, effectiveVrijemeDo),
+      tracking: {
+        enabled_by_preference: trackingEnabled,
+        address: CITAONA_LOCATION.address,
+        radius_meters: CITAONA_LOCATION.radiusMeters,
+        grace_minutes: CITAONA_LOCATION.graceMinutes,
+        reservation_mode: trackingEnabled ? "daily_tracking" : "standard",
+        reservation_window: reservationWindow,
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -186,8 +405,8 @@ const createReservation = async (req, res) => {
   try {
     const { datum, vrijeme_od, trajanje, mjesto_id } = req.body;
 
-    if (!datum || !vrijeme_od || !trajanje || !mjesto_id) {
-      return res.status(400).json({ message: "Sva polja su obavezna." });
+    if (!datum || !mjesto_id) {
+      return res.status(400).json({ message: "Datum i mjesto su obavezni." });
     }
 
     if (!isTodayOrTomorrow(datum)) {
@@ -196,19 +415,38 @@ const createReservation = async (req, res) => {
       });
     }
 
-    if (isPastTime(datum, vrijeme_od)) {
+    const user = await getCurrentUser(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "Korisnik nije pronađen." });
+    }
+
+    const trackingEnabled = user.location_tracking_consent === true;
+    const reservationWindow = getReservationWindow({
+      trackingEnabled,
+      datum,
+      vrijemeOd: vrijeme_od || "07:00",
+      trajanje: Number(trajanje || 60),
+    });
+
+    if (!reservationWindow) {
+      return res.status(400).json({
+        message: trackingEnabled
+          ? "Za izabrani dan više nema dostupnog radnog vremena za dnevnu rezervaciju."
+          : "Nevažeće trajanje rezervacije.",
+      });
+    }
+
+    const effectiveVrijemeOd = reservationWindow.vrijeme_od;
+    const effectiveVrijemeDo = reservationWindow.vrijeme_do;
+
+    if (!trackingEnabled && isPastTime(datum, effectiveVrijemeOd)) {
       return res.status(400).json({
         message: "Ne možeš rezervisati termin koji je već prošao.",
       });
     }
 
-    if (!durations.includes(Number(trajanje))) {
-      return res.status(400).json({ message: "Nevažeće trajanje rezervacije." });
-    }
-
-    const vrijeme_do = addMinutesToTime(vrijeme_od, Number(trajanje));
-
-    if (!isWorkingTime(datum, vrijeme_od, vrijeme_do)) {
+    if (!isWorkingTime(datum, effectiveVrijemeOd, effectiveVrijemeDo)) {
       return res.status(400).json({
         message: "Čitaonica ne radi u izabranom terminu.",
       });
@@ -226,7 +464,7 @@ const createReservation = async (req, res) => {
       AND vrijeme_od < $4
       AND vrijeme_do > $3
       `,
-      [mjesto_id, datum, vrijeme_od, vrijeme_do]
+      [mjesto_id, datum, effectiveVrijemeOd, effectiveVrijemeDo]
     );
 
     if (overlap.rows.length > 0) {
@@ -245,7 +483,7 @@ const createReservation = async (req, res) => {
       AND vrijeme_od < $4
       AND vrijeme_do > $3
       `,
-      [req.user.id, datum, vrijeme_od, vrijeme_do]
+      [req.user.id, datum, effectiveVrijemeOd, effectiveVrijemeDo]
     );
 
     if (userOverlap.rows.length > 0) {
@@ -267,7 +505,8 @@ const createReservation = async (req, res) => {
         vrijeme_do,
         status,
         created_at,
-        expires_at
+        expires_at,
+        tracking_enabled
       )
       VALUES (
         $1,
@@ -278,16 +517,33 @@ const createReservation = async (req, res) => {
         $6,
         'pending',
         NOW(),
-        ($4::date + $5::time + INTERVAL '15 minutes')
+        ($4::date + $5::time + INTERVAL '15 minutes'),
+        $7
       )
       RETURNING *
       `,
-      [kod, req.user.id, mjesto_id, datum, vrijeme_od, vrijeme_do]
+      [
+        kod,
+        req.user.id,
+        mjesto_id,
+        datum,
+        effectiveVrijemeOd,
+        effectiveVrijemeDo,
+        trackingEnabled,
+      ]
     );
 
     res.status(201).json({
-      message: "Rezervacija je uspješno kreirana.",
-      rezervacija: result.rows[0],
+      message: trackingEnabled
+        ? "Dnevna rezervacija sa praćenjem lokacije je uspješno kreirana."
+        : "Rezervacija je uspješno kreirana.",
+      rezervacija: mapReservation(result.rows[0]),
+      tracking: {
+        enabled: trackingEnabled,
+        address: CITAONA_LOCATION.address,
+        radius_meters: CITAONA_LOCATION.radiusMeters,
+        grace_minutes: CITAONA_LOCATION.graceMinutes,
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -341,7 +597,12 @@ const confirmReservationCode = async (req, res) => {
       `
       UPDATE rezervacija
       SET status = 'active',
-          checked_in_at = NOW()
+          checked_in_at = NOW(),
+          outside_since = NULL,
+          last_location_at = NULL,
+          last_latitude = NULL,
+          last_longitude = NULL,
+          last_distance_meters = NULL
       WHERE id = $1
       RETURNING *
       `,
@@ -350,7 +611,7 @@ const confirmReservationCode = async (req, res) => {
 
     res.json({
       message: "Rezervacija je potvrđena. Student može koristiti čitaonicu.",
-      rezervacija: result.rows[0],
+      rezervacija: mapReservation(result.rows[0]),
     });
   } catch (error) {
     res.status(500).json({
@@ -359,6 +620,7 @@ const confirmReservationCode = async (req, res) => {
     });
   }
 };
+
 const cancelReservation = async (req, res) => {
   try {
     const { id } = req.params;
@@ -366,7 +628,8 @@ const cancelReservation = async (req, res) => {
     const result = await pool.query(
       `
       UPDATE rezervacija
-      SET status = 'cancelled'
+      SET status = 'cancelled',
+          cancellation_reason = COALESCE(cancellation_reason, 'cancelled_by_user')
       WHERE id = $1
       AND user_id = $2
       AND status = 'pending'
@@ -383,7 +646,7 @@ const cancelReservation = async (req, res) => {
 
     res.json({
       message: "Rezervacija je otkazana.",
-      rezervacija: result.rows[0],
+      rezervacija: mapReservation(result.rows[0]),
     });
   } catch (error) {
     res.status(500).json({
@@ -417,6 +680,214 @@ const clearReservationHistory = async (req, res) => {
   }
 };
 
+const getTrackingStatus = async (req, res) => {
+  try {
+    const user = await getCurrentUser(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "Korisnik nije pronađen." });
+    }
+
+    const activeTracking = await getActiveTrackingReservation(req.user.id);
+
+    res.json({
+      enabled_by_preference: user.location_tracking_consent === true,
+      location: {
+        address: CITAONA_LOCATION.address,
+        radius_meters: CITAONA_LOCATION.radiusMeters,
+        grace_minutes: CITAONA_LOCATION.graceMinutes,
+      },
+      reservation: activeTracking.reservation,
+      shouldTrack: activeTracking.shouldTrack,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Greška pri učitavanju statusa praćenja.",
+      error: error.message,
+    });
+  }
+};
+
+const receiveTrackingPing = async (req, res) => {
+  try {
+    const { reservation_id, latitude, longitude, accuracy_meters } = req.body;
+
+    if (!reservation_id || latitude === undefined || longitude === undefined) {
+      return res.status(400).json({
+        message: "Rezervacija i koordinate su obavezni.",
+      });
+    }
+
+    const lat = Number(latitude);
+    const lon = Number(longitude);
+    const accuracy =
+      accuracy_meters === undefined || accuracy_meters === null
+        ? null
+        : Number(accuracy_meters);
+
+    if (
+      Number.isNaN(lat) ||
+      Number.isNaN(lon) ||
+      lat < -90 ||
+      lat > 90 ||
+      lon < -180 ||
+      lon > 180
+    ) {
+      return res.status(400).json({
+        message: "Koordinate nijesu validne.",
+      });
+    }
+
+    await markExpiredReservations();
+
+    const reservationResult = await pool.query(
+      `
+      SELECT
+        id,
+        user_id,
+        datum,
+        vrijeme_od,
+        vrijeme_do,
+        status,
+        tracking_enabled,
+        outside_since,
+        last_location_at,
+        last_distance_meters,
+        cancellation_reason
+      FROM rezervacija
+      WHERE id = $1
+        AND user_id = $2
+        AND tracking_enabled = true
+        AND status IN ('pending', 'active')
+      LIMIT 1
+      `,
+      [reservation_id, req.user.id]
+    );
+
+    const reservation = reservationResult.rows[0];
+
+    if (!reservation) {
+      return res.status(404).json({
+        message: "Aktivna tracked rezervacija nije pronađena.",
+      });
+    }
+
+    if (!isReservationInTrackingWindow(reservation)) {
+      return res.json({
+        message: "Rezervacija trenutno nije u periodu aktivnog praćenja.",
+        reservation: mapReservation(reservation),
+      });
+    }
+
+    const distance = calculateDistanceMeters(
+      { latitude: lat, longitude: lon },
+      {
+        latitude: CITAONA_LOCATION.latitude,
+        longitude: CITAONA_LOCATION.longitude,
+      }
+    );
+    const withinRadius = distance <= CITAONA_LOCATION.radiusMeters;
+
+    await pool.query(
+      `
+      INSERT INTO rezervacija_lokacija_log (
+        rezervacija_id,
+        user_id,
+        latitude,
+        longitude,
+        distance_meters,
+        is_within_radius,
+        accuracy_meters
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `,
+      [reservation.id, req.user.id, lat, lon, distance, withinRadius, accuracy]
+    );
+
+    let result;
+
+    if (reservation.status === "pending") {
+      result = await pool.query(
+        `
+        UPDATE rezervacija
+        SET outside_since = NULL,
+            last_location_at = NOW(),
+            last_latitude = $2,
+            last_longitude = $3,
+            last_distance_meters = $4
+        WHERE id = $1
+        RETURNING *
+        `,
+        [reservation.id, lat, lon, distance]
+      );
+    } else if (withinRadius) {
+      result = await pool.query(
+        `
+        UPDATE rezervacija
+        SET outside_since = NULL,
+            last_location_at = NOW(),
+            last_latitude = $2,
+            last_longitude = $3,
+            last_distance_meters = $4
+        WHERE id = $1
+        RETURNING *
+        `,
+        [reservation.id, lat, lon, distance]
+      );
+    } else {
+      const outsideSince = reservation.outside_since
+        ? new Date(reservation.outside_since)
+        : new Date();
+      const elapsedMs = Date.now() - outsideSince.getTime();
+      const shouldCancel =
+        elapsedMs >= CITAONA_LOCATION.graceMinutes * 60 * 1000;
+
+      result = await pool.query(
+        `
+        UPDATE rezervacija
+        SET outside_since = COALESCE(outside_since, NOW()),
+            last_location_at = NOW(),
+            last_latitude = $2,
+            last_longitude = $3,
+            last_distance_meters = $4,
+            status = CASE WHEN $5 THEN 'cancelled' ELSE status END,
+            auto_cancelled_at = CASE WHEN $5 THEN NOW() ELSE auto_cancelled_at END,
+            cancellation_reason = CASE
+              WHEN $5 THEN 'outside_radius_timeout'
+              ELSE cancellation_reason
+            END
+        WHERE id = $1
+        RETURNING *
+        `,
+        [reservation.id, lat, lon, distance, shouldCancel]
+      );
+    }
+
+    const updatedReservation = mapReservation(result.rows[0]);
+
+    res.json({
+      message:
+        updatedReservation.status === "cancelled"
+          ? "Rezervacija je automatski otkazana jer je student bio van dozvoljenog radijusa duže od 60 minuta."
+          : updatedReservation.status === "pending"
+          ? "Lokacija je evidentirana. Rezervacija i dalje čeka potvrdu dolaska."
+          : "Lokacija je evidentirana.",
+      reservation: updatedReservation,
+      tracking: {
+        distance_meters: distance,
+        within_radius: withinRadius,
+        radius_meters: CITAONA_LOCATION.radiusMeters,
+        grace_minutes: CITAONA_LOCATION.graceMinutes,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Greška pri obradi lokacije.",
+      error: error.message,
+    });
+  }
+};
+
 const getAdminReservations = async (req, res) => {
   try {
     await markExpiredReservations();
@@ -430,6 +901,14 @@ const getAdminReservations = async (req, res) => {
         r.vrijeme_od,
         r.vrijeme_do,
         r.status,
+        r.admin_note,
+        r.created_by_admin,
+        r.tracking_enabled,
+        r.outside_since,
+        r.last_location_at,
+        r.last_distance_meters,
+        r.auto_cancelled_at,
+        r.cancellation_reason,
         u.name,
         u.index_number,
         u.profile_image_path AS profile_image_url,
@@ -442,7 +921,7 @@ const getAdminReservations = async (req, res) => {
     );
 
     res.json({
-      rezervacije: result.rows,
+      rezervacije: result.rows.map(mapReservation),
     });
   } catch (error) {
     res.status(500).json({
@@ -451,6 +930,7 @@ const getAdminReservations = async (req, res) => {
     });
   }
 };
+
 const createAdminReservation = async (req, res) => {
   try {
     const { datum, vrijeme_od, trajanje, mjesto_id, admin_note } = req.body;
@@ -504,7 +984,8 @@ const createAdminReservation = async (req, res) => {
         checked_in_at,
         expires_at,
         admin_note,
-        created_by_admin
+        created_by_admin,
+        tracking_enabled
       )
       VALUES (
         $1,
@@ -518,7 +999,8 @@ const createAdminReservation = async (req, res) => {
         NOW(),
         ($4::date + $5::time + INTERVAL '15 minutes'),
         $7,
-        true
+        true,
+        false
       )
       RETURNING *
       `,
@@ -535,7 +1017,7 @@ const createAdminReservation = async (req, res) => {
 
     res.status(201).json({
       message: "Mjesto je uspješno zauzeto od strane admina.",
-      rezervacija: result.rows[0],
+      rezervacija: mapReservation(result.rows[0]),
     });
   } catch (error) {
     res.status(500).json({
@@ -544,12 +1026,15 @@ const createAdminReservation = async (req, res) => {
     });
   }
 };
+
 module.exports = {
   getCitaonaData,
   createReservation,
   confirmReservationCode,
   cancelReservation,
   clearReservationHistory,
+  getTrackingStatus,
+  receiveTrackingPing,
   getAdminReservations,
   createAdminReservation,
 };

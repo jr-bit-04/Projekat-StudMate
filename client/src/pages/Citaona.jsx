@@ -8,6 +8,7 @@ import {
   DoorOpen,
   Info,
   KeyRound,
+  MapPin,
   Trash2,
 } from "lucide-react";
 
@@ -15,6 +16,7 @@ import api from "../api/axios";
 import MainLayout from "../components/layout/MainLayout";
 import PageHero from "../components/ui/PageHero";
 import citaonaHero from "../assets/sections/citaona.jpg";
+import { CITAONA_TRACKING_EVENT } from "../utils/citaonaTracking";
 
 const durations = [
   { label: "30 min", value: 30 },
@@ -42,6 +44,14 @@ function Citaona() {
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [tracking, setTracking] = useState({
+    enabled_by_preference: false,
+    address: "2 Cetinjski Put, Podgorica 81000, Crna Gora",
+    radius_meters: 30,
+    grace_minutes: 60,
+    reservation_mode: "standard",
+    reservation_window: null,
+  });
 
   const allowedDates = useMemo(() => [getTodayISO(), getTomorrowISO()], []);
 
@@ -58,6 +68,21 @@ function Citaona() {
     fetchCitaona();
   }, [datum, vrijemeOd, trajanje]);
 
+  useEffect(() => {
+    const handleTrackingUpdate = () => {
+      fetchCitaona();
+    };
+
+    window.addEventListener(CITAONA_TRACKING_EVENT, handleTrackingUpdate);
+
+    return () => {
+      window.removeEventListener(
+        CITAONA_TRACKING_EVENT,
+        handleTrackingUpdate
+      );
+    };
+  }, [datum, vrijemeOd, trajanje]);
+
   const fetchCitaona = async () => {
     try {
       setMessage("");
@@ -72,6 +97,16 @@ function Citaona() {
       setIstorija(res.data.istorija || []);
       setVrijemeDo(res.data.vrijeme_do || "");
       setRadi(res.data.radi);
+      setTracking(
+        res.data.tracking || {
+          enabled_by_preference: false,
+          address: "2 Cetinjski Put, Podgorica 81000, Crna Gora",
+          radius_meters: 30,
+          grace_minutes: 60,
+          reservation_mode: "standard",
+          reservation_window: null,
+        }
+      );
       setSelectedSeat(null);
     } catch (error) {
       setMessage(
@@ -90,18 +125,35 @@ function Citaona() {
       setMessage("");
       setSuccess("");
 
+      if (tracking.enabled_by_preference && !tracking.reservation_window) {
+        setMessage(getTrackingReservationUnavailableMessage(datum));
+        return;
+      }
+
+      if (tracking.enabled_by_preference) {
+        await requestDeviceLocationPermission();
+      }
+
       const res = await api.post("/citaona/rezervacija", {
         datum,
-        vrijeme_od: vrijemeOd,
-        trajanje,
+        vrijeme_od: tracking.enabled_by_preference
+          ? tracking.reservation_window?.vrijeme_od
+          : vrijemeOd,
+        trajanje: tracking.enabled_by_preference ? undefined : trajanje,
         mjesto_id: selectedSeat,
       });
 
-      setSuccess(`Rezervacija je uspješna. Tvoj kod je: ${res.data.rezervacija.kod}`);
+      setSuccess(
+        tracking.enabled_by_preference
+          ? `Dnevna rezervacija je uspješna. Tvoj kod je: ${res.data.rezervacija.kod}. Lokacija se provjerava tokom termina, a pri ulasku obavezno pokaži kod zaposlenom.`
+          : `Rezervacija je uspješna. Tvoj kod je: ${res.data.rezervacija.kod}`
+      );
       fetchCitaona();
     } catch (error) {
       setMessage(
-        error.response?.data?.message || "Greška pri kreiranju rezervacije."
+        error.response?.data?.message ||
+          error.message ||
+          "Greška pri kreiranju rezervacije."
       );
     }
   };
@@ -148,6 +200,17 @@ function Citaona() {
     }
   };
 
+  const isDailyTrackingMode = tracking.enabled_by_preference === true;
+  const displayedVrijemeOd = isDailyTrackingMode
+    ? tracking.reservation_window?.vrijeme_od || "-"
+    : vrijemeOd;
+  const displayedVrijemeDo = isDailyTrackingMode
+    ? tracking.reservation_window?.vrijeme_do || "-"
+    : vrijemeDo || "-";
+  const noTrackingWindow =
+    isDailyTrackingMode && !tracking.reservation_window;
+  const reserveDisabled = !radi || noTrackingWindow;
+
   return (
     <MainLayout>
       <PageHero
@@ -160,12 +223,12 @@ function Citaona() {
         highlights={[
           { icon: DoorOpen, label: "30 mjesta" },
           { icon: Clock3, label: "Radno vrijeme" },
-          { icon: KeyRound, label: "Online rezervacija" },
+          { icon: MapPin, label: "2 Cetinjski Put" },
         ]}
       />
 
       <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6">
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
           <InfoMini icon={DoorOpen} label="Kapacitet" value="30 mjesta" />
           <InfoMini icon={Clock3} label="Radnim danima" value="07:00-21:00" />
           <InfoMini
@@ -179,13 +242,22 @@ function Citaona() {
               </>
             }
           />
+          <InfoMini
+            icon={MapPin}
+            label="Lokacija"
+            value={tracking.address}
+          />
         </div>
       </section>
 
       <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6">
         <h2 className="text-xl md:text-2xl font-bold text-[#10243A]">Odaberi termin</h2>
 
-        <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-3">
+        <div
+          className={`mt-6 grid grid-cols-1 gap-5 ${
+            isDailyTrackingMode ? "md:grid-cols-3" : "md:grid-cols-3"
+          }`}
+        >
           <Field label="Datum">
             <select
               value={datum}
@@ -200,34 +272,67 @@ function Citaona() {
             </select>
           </Field>
 
-          <Field label="Vrijeme početka">
-            <input
-              type="time"
-              value={vrijemeOd}
-              min={minTime}
-              onChange={(e) => setVrijemeOd(e.target.value)}
-              className="h-12 w-full rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] px-4 text-sm font-semibold outline-none focus:border-[#0b3a8f]"
-            />
-          </Field>
+          {isDailyTrackingMode ? (
+            <>
+              <InfoField
+                label="Režim rezervacije"
+                value={`Cijeli radni dan: ${displayedVrijemeOd || "-"} - ${displayedVrijemeDo || "-"}`}
+              />
 
-          <Field label="Trajanje">
-            <select
-              value={trajanje}
-              onChange={(e) => setTrajanje(Number(e.target.value))}
-              className="h-12 w-full rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] px-4 text-sm font-semibold outline-none focus:border-[#0b3a8f]"
-            >
-              {durations.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </Field>
+              <InfoField
+                label="Praćenje lokacije"
+                value={`Radijus ${tracking.radius_meters} m, odsustvo do ${tracking.grace_minutes} min`}
+              />
+            </>
+          ) : (
+            <>
+              <Field label="Vrijeme početka">
+                <input
+                  type="time"
+                  value={vrijemeOd}
+                  min={minTime}
+                  onChange={(e) => setVrijemeOd(e.target.value)}
+                  className="h-12 w-full rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] px-4 text-sm font-semibold outline-none focus:border-[#0b3a8f]"
+                />
+              </Field>
+
+              <Field label="Trajanje">
+                <select
+                  value={trajanje}
+                  onChange={(e) => setTrajanje(Number(e.target.value))}
+                  className="h-12 w-full rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] px-4 text-sm font-semibold outline-none focus:border-[#0b3a8f]"
+                >
+                  {durations.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </>
+          )}
         </div>
 
         <div className="mt-5 rounded-2xl bg-[#0b3a8f]/10 p-4 text-sm font-bold text-[#0b3a8f]">
-          Izabrani termin: {vrijemeOd} - {vrijemeDo || "-"}
+          Izabrani termin: {displayedVrijemeOd || "-"} - {displayedVrijemeDo || "-"}
         </div>
+
+        {isDailyTrackingMode && (
+          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-800">
+            Pošto si dozvolio praćenje lokacije, ova rezervacija važi za cijeli
+            radni dan čitaonice. Aplikacija provjerava da li si u radijusu od{" "}
+            {tracking.radius_meters} m od adrese {tracking.address}, a pri
+            ulasku moraš pokazati kod zaposlenom. Ako si van tog radijusa duže
+            od {tracking.grace_minutes} minuta, rezervacija se automatski
+            otkazuje i mjesto se oslobađa.
+          </div>
+        )}
+
+        {noTrackingWindow && (
+          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold leading-6 text-amber-800">
+            {getTrackingReservationUnavailableMessage(datum)}
+          </div>
+        )}
 
         {!radi && (
           <div className="mt-5 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-600">
@@ -245,7 +350,9 @@ function Citaona() {
             </h2>
 
             <p className="mt-2 break-words text-sm leading-6 text-slate-500 md:text-[15px]">
-              Slobodna mjesta mogu se rezervisati za izabrani termin.
+              {isDailyTrackingMode
+                ? "Slobodna mjesta rezervišu se za cijeli radni dan uz dozvoljeno praćenje lokacije."
+                : "Slobodna mjesta mogu se rezervisati za izabrani termin."}
             </p>
           </div>
 
@@ -304,7 +411,7 @@ function Citaona() {
         <button
           type="button"
           onClick={reserveSeat}
-          disabled={!radi}
+          disabled={reserveDisabled}
           className="mt-7 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#0b3a8f] px-6 text-sm font-bold text-white transition hover:bg-[#082d70] disabled:cursor-not-allowed disabled:bg-slate-300 sm:w-auto"
         >
           <KeyRound size={18} />
@@ -382,6 +489,10 @@ function Citaona() {
                     wide
                   />
                 </div>
+
+                {item.tracking_enabled && (
+                  <TrackingStatusNote item={item} className="mt-4" />
+                )}
               </article>
             ))
           )}
@@ -418,7 +529,16 @@ function Citaona() {
                   <Cell>
                     {item.vrijeme_od?.slice(0, 5)} - {item.vrijeme_do?.slice(0, 5)}
                   </Cell>
-                  <Cell>{formatStatus(item.status)}</Cell>
+                  <Cell>
+                    <div className="grid gap-1">
+                      <span>{formatStatus(item.status)}</span>
+                      {item.tracking_enabled && (
+                        <span className="text-xs font-bold text-amber-700">
+                          Dnevno praćenje
+                        </span>
+                      )}
+                    </div>
+                  </Cell>
                   <Cell>{formatDateTime(item.expires_at)}</Cell>
                   <Cell>
                     {item.status === "pending" ? (
@@ -521,6 +641,10 @@ function Citaona() {
                         value={formatDateTime(item.created_at)}
                       />
                     </div>
+
+                    {item.tracking_enabled && (
+                      <TrackingStatusNote item={item} className="mt-4" />
+                    )}
                   </article>
                 ))
               )}
@@ -598,6 +722,20 @@ function Field({ label, children }) {
   );
 }
 
+function InfoField({ label, value }) {
+  return (
+      <div>
+        <label className="mb-2 block text-sm font-bold text-[#10243A]">
+          {label}
+        </label>
+
+      <div className="flex min-h-[48px] items-center rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] px-4 py-3 text-sm font-semibold text-[#10243A]">
+        {value}
+      </div>
+    </div>
+  );
+}
+
 function Head({ text }) {
   return (
     <div className="px-4 py-4 text-xs font-bold uppercase tracking-[0.12em] text-[#0b3a8f]">
@@ -626,6 +764,89 @@ function ReservationMeta({ label, value, wide = false }) {
       </p>
     </div>
   );
+}
+
+function TrackingStatusNote({ item, className = "" }) {
+  const note = getTrackingNote(item);
+
+  return (
+    <div
+      className={`rounded-2xl border p-4 text-sm font-semibold leading-6 ${note.className} ${className}`}
+    >
+      {note.message}
+    </div>
+  );
+}
+
+function hasTrackingPing(item) {
+  return Boolean(item?.last_location_at);
+}
+
+function isTrackedOutside(item) {
+  return (
+    item?.status === "active" &&
+    typeof item?.last_distance_meters === "number" &&
+    item.last_distance_meters > 30 &&
+    item.outside_since
+  );
+}
+
+function getTrackingNote(item) {
+  if (item?.cancellation_reason === "outside_radius_timeout") {
+    return {
+      className: "border-red-200 bg-red-50 text-red-700",
+      message:
+        "Rezervacija je automatski otkazana jer si bio van dozvoljenog radijusa duže od 60 minuta.",
+    };
+  }
+
+  if (item?.status === "expired") {
+    return {
+      className: "border-red-200 bg-red-50 text-red-700",
+      message:
+        "Rezervacija je istekla jer dolazak nije potvrđen na vrijeme.",
+    };
+  }
+
+  if (item?.status === "cancelled") {
+    return {
+      className: "border-slate-200 bg-slate-50 text-slate-600",
+      message: "Rezervacija je otkazana i više se ne prati lokacija.",
+    };
+  }
+
+  if (item?.status === "completed") {
+    return {
+      className: "border-slate-200 bg-slate-50 text-slate-600",
+      message: "Rezervacija je završena.",
+    };
+  }
+
+  if (item?.status === "pending") {
+    return {
+      className: "border-amber-200 bg-amber-50 text-amber-800",
+      message:
+        hasTrackingPing(item) && typeof item.last_distance_meters === "number"
+          ? item.last_distance_meters > 30
+            ? "Rezervacija čeka potvrdu dolaska. Trenutno nijesi u radijusu čitaonice."
+            : "Rezervacija čeka potvrdu dolaska. Pri ulasku pokaži kod zaposlenom."
+          : "Rezervacija čeka potvrdu dolaska. Uključi lokaciju i pokaži kod pri ulasku.",
+    };
+  }
+
+  if (isTrackedOutside(item)) {
+    return {
+      className: "border-red-200 bg-red-50 text-red-700",
+      message: `Trenutno si van dozvoljenog radijusa. Preostalo odsustvo: ${
+        item.remaining_grace_minutes ?? 0
+      } min.`,
+    };
+  }
+
+  return {
+    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    message: "Lokacija se prati i trenutno si u dozvoljenom radijusu.",
+  };
 }
 
 function getTodayISO() {
@@ -674,6 +895,37 @@ function formatStatus(status) {
   if (status === "completed") return "Završena";
 
   return status || "-";
+}
+
+function requestDeviceLocationPermission() {
+  if (!("geolocation" in navigator)) {
+    throw new Error("Tvoj uređaj ne podržava lokaciju za tracked rezervaciju.");
+  }
+
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(
+      () => resolve(true),
+      () =>
+        reject(
+          new Error(
+            "Za dnevnu rezervaciju moraš dozvoliti pristup lokaciji u browseru."
+          )
+        ),
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
+      }
+    );
+  });
+}
+
+function getTrackingReservationUnavailableMessage(datum) {
+  if (datum === getTodayISO()) {
+    return "Za danas je radno vrijeme čitaonice završeno. Izaberi sjutrašnji datum za dnevnu rezervaciju.";
+  }
+
+  return "Za izabrani dan trenutno nema dostupnog radnog vremena za dnevnu rezervaciju.";
 }
 
 export default Citaona;

@@ -6,6 +6,8 @@ const {
   confirmReservationCode,
   cancelReservation,
   clearReservationHistory,
+  getTrackingStatus,
+  receiveTrackingPing,
   getAdminReservations,
   createAdminReservation,
 } = require("../controllers/citaonaController");
@@ -20,6 +22,8 @@ const router = express.Router();
 router.get("/", protect, getCitaonaData);
 
 router.post("/rezervacija", protect, createReservation);
+router.get("/tracking/active", protect, getTrackingStatus);
+router.post("/tracking/ping", protect, receiveTrackingPing);
 
 router.delete("/rezervacije/istorija", protect, clearReservationHistory);
 

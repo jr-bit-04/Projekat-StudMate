@@ -73,6 +73,8 @@ const getMailFrom = () => {
   return process.env.MAIL_FROM || `"StudMate" <${process.env.SMTP_USER || process.env.EMAIL_USER}>`;
 };
 
+const normalizeBoolean = (value) => value === true || value === "true" || value === 1 || value === "1";
+
 const register = async (req, res) => {
   try {
     const {
@@ -82,6 +84,7 @@ const register = async (req, res) => {
       faculty,
       dorm,
       index_number,
+      location_tracking_consent,
     } = req.body;
 
     if (!name || !email || !password) {
@@ -113,9 +116,11 @@ const register = async (req, res) => {
         faculty,
         dorm,
         index_number,
-        admin_module
+        admin_module,
+        location_tracking_consent,
+        location_tracking_consent_updated_at
       )
-      VALUES ($1, $2, $3, 'student', $4, $5, $6, NULL)
+      VALUES ($1, $2, $3, 'student', $4, $5, $6, NULL, $7, CASE WHEN $7 THEN NOW() ELSE NULL END)
       RETURNING
         ${PUBLIC_USER_COLUMNS}
       `,
@@ -126,6 +131,7 @@ const register = async (req, res) => {
         faculty || null,
         dorm || null,
         index_number || null,
+        normalizeBoolean(location_tracking_consent),
       ]
     );
 

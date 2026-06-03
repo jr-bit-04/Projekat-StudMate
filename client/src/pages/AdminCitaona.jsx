@@ -5,6 +5,8 @@ import {
   CheckCircle2,
   Clock3,
   KeyRound,
+  MapPin,
+  Radar,
   Search,
   User,
   XCircle,
@@ -51,6 +53,30 @@ function AdminCitaona() {
     [mjesta, selectedSeat]
   );
 
+  const trackingSummary = useMemo(() => {
+    const tracked = rezervacije.filter(
+      (item) => item.tracking_enabled && item.status !== "cancelled"
+    );
+    const outside = rezervacije.filter(
+      (item) =>
+        item.tracking_enabled &&
+        item.status === "active" &&
+        isOutsideRadius(item)
+    );
+    const monitored = rezervacije.filter(
+      (item) =>
+        item.tracking_enabled &&
+        item.status === "active" &&
+        typeof item.remaining_grace_minutes === "number"
+    );
+
+    return {
+      tracked: tracked.length,
+      outside: outside.length,
+      monitored: monitored.length,
+    };
+  }, [rezervacije]);
+
   const filteredReservations = useMemo(() => {
     const value = search.trim().toLowerCase();
 
@@ -67,42 +93,6 @@ function AdminCitaona() {
       );
     });
   }, [rezervacije, search]);
-
-  useEffect(() => {
-    const loadReservations = async () => {
-      try {
-        const res = await api.get("/citaona/admin/rezervacije");
-        setRezervacije(res.data.rezervacije || []);
-      } catch (error) {
-        setMessage(
-          error.response?.data?.message || "Greška pri učitavanju rezervacija."
-        );
-      }
-    };
-
-    loadReservations();
-  }, []);
-
-  useEffect(() => {
-    const loadSeats = async () => {
-      try {
-        const res = await api.get(
-          `/citaona?datum=${datum}&vrijeme_od=${vrijemeOd}&trajanje=${trajanje}`
-        );
-
-        setMjesta(res.data.mjesta || []);
-        setVrijemeDo(res.data.vrijeme_do || "");
-        setRadi(res.data.radi);
-        setSelectedSeat(null);
-      } catch (error) {
-        setMessage(
-          error.response?.data?.message || "Greška pri učitavanju mjesta."
-        );
-      }
-    };
-
-    loadSeats();
-  }, [datum, vrijemeOd, trajanje]);
 
   const refreshReservations = async () => {
     try {
@@ -126,9 +116,25 @@ function AdminCitaona() {
       setRadi(res.data.radi);
       setSelectedSeat(null);
     } catch (error) {
-      setMessage(error.response?.data?.message || "Greška pri učitavanju mjesta.");
+      setMessage(
+        error.response?.data?.message || "Greška pri učitavanju mjesta."
+      );
     }
   };
+
+  useEffect(() => {
+    refreshReservations();
+
+    const intervalId = window.setInterval(refreshReservations, 30000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  useEffect(() => {
+    refreshSeats();
+  }, [datum, vrijemeOd, trajanje]);
 
   const confirmCode = async () => {
     if (!kod.trim()) {
@@ -178,7 +184,9 @@ function AdminCitaona() {
       refreshReservations();
       refreshSeats();
     } catch (error) {
-      setMessage(error.response?.data?.message || "Greška pri zauzimanju mjesta.");
+      setMessage(
+        error.response?.data?.message || "Greška pri zauzimanju mjesta."
+      );
     }
   };
 
@@ -215,6 +223,26 @@ function AdminCitaona() {
             icon={CalendarDays}
             label="Pregled rezervacija"
             value="Pretraga svih unosa u sistemu"
+          />
+        </div>
+      </section>
+
+      <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+          <InfoMini
+            icon={Radar}
+            label="Praćene rezervacije"
+            value={`${trackingSummary.tracked}`}
+          />
+          <InfoMini
+            icon={MapPin}
+            label="Rezervacije van zone"
+            value={`${trackingSummary.outside}`}
+          />
+          <InfoMini
+            icon={Clock3}
+            label="Aktivna lokacijska kontrola"
+            value={`${trackingSummary.monitored}`}
           />
         </div>
       </section>
@@ -457,7 +485,10 @@ function AdminCitaona() {
                     </div>
                   </div>
 
-                  <StatusBadge status={item.status} />
+                  <StatusBadge
+                    status={item.status}
+                    cancellationReason={item.cancellation_reason}
+                  />
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-3">
@@ -469,19 +500,22 @@ function AdminCitaona() {
                     value={`${item.vrijeme_od?.slice(0, 5)} - ${item.vrijeme_do?.slice(0, 5)}`}
                   />
                 </div>
+
+                <TrackingStatusPanel item={item} className="mt-4" />
               </article>
             ))
           )}
         </div>
 
         <div className="mt-6 hidden overflow-x-auto rounded-2xl border border-[#dbe4f0] md:block">
-          <div className="min-w-[960px]">
-            <div className="grid grid-cols-[1.3fr_1fr_1fr_1fr_1.4fr_1fr] bg-[#F8FBFF]">
+          <div className="min-w-[1180px]">
+            <div className="grid grid-cols-[1.3fr_0.8fr_0.8fr_0.9fr_1.2fr_1.4fr_1fr] bg-[#F8FBFF]">
               <Head text="Student/Napomena" />
               <Head text="Mjesto" />
               <Head text="Kod" />
               <Head text="Datum" />
               <Head text="Termin" />
+              <Head text="Tracking" />
               <Head text="Status" />
             </div>
 
@@ -491,7 +525,7 @@ function AdminCitaona() {
               filteredReservations.map((item) => (
                 <div
                   key={item.id}
-                  className="grid grid-cols-[1.3fr_1fr_1fr_1fr_1.4fr_1fr] border-t border-[#dbe4f0] bg-white"
+                  className="grid grid-cols-[1.3fr_0.8fr_0.8fr_0.9fr_1.2fr_1.4fr_1fr] border-t border-[#dbe4f0] bg-white"
                 >
                   <Cell>
                     <ReservationUser item={item} compact />
@@ -516,7 +550,14 @@ function AdminCitaona() {
                   </Cell>
 
                   <Cell>
-                    <StatusBadge status={item.status} />
+                    <TrackingStatusPanel item={item} compact />
+                  </Cell>
+
+                  <Cell>
+                    <StatusBadge
+                      status={item.status}
+                      cancellationReason={item.cancellation_reason}
+                    />
                   </Cell>
                 </div>
               ))
@@ -575,7 +616,7 @@ function Cell({ children }) {
 function ReservationUser({ item, compact = false }) {
   if (item.created_by_admin) {
     return (
-      <div>
+      <div className={compact ? "min-w-0" : ""}>
         <p className="font-bold text-[#10243A]">
           {item.admin_note || "Unos admina"}
         </p>
@@ -585,11 +626,7 @@ function ReservationUser({ item, compact = false }) {
 
   return (
     <div className={`flex min-w-0 items-center gap-3 ${compact ? "" : "pr-2"}`}>
-      <Avatar
-        name={item.name}
-        src={item.profile_image_url}
-        size="sm"
-      />
+      <Avatar name={item.name} src={item.profile_image_url} size="sm" />
 
       <div className="min-w-0">
         <p className="truncate font-bold text-[#10243A]">
@@ -620,10 +657,13 @@ function ReservationMeta({ label, value }) {
   );
 }
 
-function StatusBadge({ status }) {
+function StatusBadge({ status, cancellationReason }) {
+  const badgeBase =
+    "inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-1 text-xs font-bold";
+
   if (status === "active") {
     return (
-      <div className="inline-flex shrink-0 items-center gap-2 rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-green-600">
+      <div className={`${badgeBase} bg-green-50 text-green-600`}>
         <CheckCircle2 size={14} />
         Aktivna
       </div>
@@ -632,7 +672,7 @@ function StatusBadge({ status }) {
 
   if (status === "pending") {
     return (
-      <div className="inline-flex shrink-0 items-center gap-2 rounded-full bg-yellow-50 px-3 py-1 text-xs font-bold text-yellow-700">
+      <div className={`${badgeBase} bg-yellow-50 text-yellow-700`}>
         <Clock3 size={14} />
         Čeka dolazak
       </div>
@@ -641,7 +681,7 @@ function StatusBadge({ status }) {
 
   if (status === "expired") {
     return (
-      <div className="inline-flex shrink-0 items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-600">
+      <div className={`${badgeBase} bg-red-50 text-red-600`}>
         <XCircle size={14} />
         Istekla
       </div>
@@ -650,15 +690,184 @@ function StatusBadge({ status }) {
 
   if (status === "cancelled") {
     return (
-      <div className="inline-flex shrink-0 items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-        Otkazana
+      <div className={`${badgeBase} bg-slate-100 text-slate-600`}>
+        <XCircle size={14} />
+        {cancellationReason === "outside_radius_timeout"
+          ? "Auto-otkazana"
+          : "Otkazana"}
       </div>
     );
   }
 
   return (
-    <div className="inline-flex shrink-0 items-center rounded-full bg-[#0b3a8f]/10 px-3 py-1 text-xs font-bold text-[#0b3a8f]">
+    <div className={`${badgeBase} bg-[#0b3a8f]/10 text-[#0b3a8f]`}>
       {status || "-"}
+    </div>
+  );
+}
+
+function TrackingStatusPanel({ item, compact = false, className = "" }) {
+  if (!item.tracking_enabled) {
+    return (
+      <div
+        className={`rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-500 ${className}`}
+      >
+        Ne prati se lokacija
+      </div>
+    );
+  }
+
+  const trackingState = getTrackingState(item);
+  const outside = trackingState.kind === "outside";
+  const autoCancelled = trackingState.kind === "auto_cancelled";
+
+  if (compact) {
+    return (
+      <div className={`grid gap-2 ${className}`}>
+        <span className="inline-flex w-fit items-center gap-2 rounded-full bg-[#0b3a8f]/10 px-3 py-1 text-xs font-bold text-[#0b3a8f]">
+          <Radar size={14} />
+          Prati se lokacija
+        </span>
+
+        <span className={`text-xs font-bold ${trackingState.textClass}`}>
+          {trackingState.label}
+          {outside && typeof item.remaining_grace_minutes === "number"
+            ? ` • ${item.remaining_grace_minutes} min`
+            : ""}
+        </span>
+
+        {item.last_location_at && (
+          <span className="text-[11px] font-semibold text-slate-400">
+            Ping: {formatDateTime(item.last_location_at)}
+          </span>
+        )}
+      </div>
+    );
+
+    return (
+      <div className={`grid gap-2 ${className}`}>
+        <span className="inline-flex w-fit items-center gap-2 rounded-full bg-[#0b3a8f]/10 px-3 py-1 text-xs font-bold text-[#0b3a8f]">
+          <Radar size={14} />
+          Prati se lokacija
+        </span>
+
+        {outside && item.status === "active" ? (
+          <span className="text-xs font-bold text-red-600">
+            Van radijusa
+            {typeof item.remaining_grace_minutes === "number"
+              ? ` • ${item.remaining_grace_minutes} min`
+              : ""}
+          </span>
+        ) : autoCancelled ? (
+          <span className="text-xs font-bold text-red-600">Auto-otkazana</span>
+        ) : (
+          <span className="text-xs font-bold text-emerald-700">U radijusu</span>
+        )}
+
+        {item.last_location_at && (
+          <span className="text-[11px] font-semibold text-slate-400">
+            Ping: {formatDateTime(item.last_location_at)}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`rounded-2xl border border-[#dbe4f0] bg-white px-4 py-4 ${className}`}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-2 rounded-full bg-[#0b3a8f]/10 px-3 py-1 text-xs font-bold text-[#0b3a8f]">
+          <Radar size={14} />
+          Prati se lokacija
+        </span>
+
+        <span className={trackingState.badgeClass}>{trackingState.label}</span>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <ReservationMeta
+          label="Razdaljina"
+          value={
+            hasTrackingPing(item) && typeof item.last_distance_meters === "number"
+              ? `${item.last_distance_meters} m`
+              : "Nema pinga"
+          }
+        />
+        <ReservationMeta
+          label="Preostalo"
+          value={
+            outside && typeof item.remaining_grace_minutes === "number"
+              ? `${item.remaining_grace_minutes} min`
+              : autoCancelled
+              ? "Isteklo"
+              : trackingState.remainingLabel
+          }
+        />
+        <ReservationMeta
+          label="Poslednji ping"
+          value={formatDateTime(item.last_location_at)}
+        />
+        <ReservationMeta
+          label="Razlog"
+          value={formatCancellationReason(item.cancellation_reason)}
+        />
+      </div>
+    </div>
+  );
+
+  return (
+    <div
+      className={`rounded-2xl border border-[#dbe4f0] bg-white px-4 py-4 ${className}`}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-2 rounded-full bg-[#0b3a8f]/10 px-3 py-1 text-xs font-bold text-[#0b3a8f]">
+          <Radar size={14} />
+          Prati se lokacija
+        </span>
+
+        {outside && item.status === "active" && (
+          <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-600">
+            Van radijusa
+          </span>
+        )}
+
+        {autoCancelled && (
+          <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-600">
+            Auto-otkazana
+          </span>
+        )}
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <ReservationMeta
+          label="Razdaljina"
+          value={
+            typeof item.last_distance_meters === "number"
+              ? `${item.last_distance_meters} m`
+              : "Nema podatka"
+          }
+        />
+        <ReservationMeta
+          label="Preostalo"
+          value={
+            outside && typeof item.remaining_grace_minutes === "number"
+              ? `${item.remaining_grace_minutes} min`
+              : autoCancelled
+              ? "Isteklo"
+              : "U radijusu"
+          }
+        />
+        <ReservationMeta
+          label="Poslednji ping"
+          value={formatDateTime(item.last_location_at)}
+        />
+        <ReservationMeta
+          label="Razlog"
+          value={formatCancellationReason(item.cancellation_reason)}
+        />
+      </div>
     </div>
   );
 }
@@ -687,6 +896,151 @@ function formatDate(value) {
     month: "2-digit",
     year: "numeric",
   });
+}
+
+function formatDateTime(value) {
+  if (!value) return "-";
+
+  return new Date(value).toLocaleString("sr-Latn-ME", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function isOutsideRadius(item) {
+  return (
+    hasTrackingPing(item) &&
+    typeof item.last_distance_meters === "number" &&
+    item.last_distance_meters > 30 &&
+    item.outside_since &&
+    item.status === "active"
+  );
+}
+
+function hasTrackingPing(item) {
+  return Boolean(item?.last_location_at);
+}
+
+function getTrackingState(item) {
+  if (!item?.tracking_enabled) {
+    return {
+      kind: "disabled",
+      label: "Ne prati se lokacija",
+      textClass: "text-slate-500",
+      badgeClass:
+        "rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600",
+      remainingLabel: "Ne prati se",
+    };
+  }
+
+  if (item.cancellation_reason === "outside_radius_timeout") {
+    return {
+      kind: "auto_cancelled",
+      label: "Auto-otkazana",
+      textClass: "text-red-600",
+      badgeClass:
+        "rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-600",
+      remainingLabel: "Isteklo",
+    };
+  }
+
+  if (item.status === "pending") {
+    return {
+      kind: "pending",
+      label: "Čeka potvrdu",
+      textClass: "text-slate-500",
+      badgeClass:
+        "rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600",
+      remainingLabel: "Nije počelo",
+    };
+  }
+
+  if (item.status === "expired") {
+    return {
+      kind: "expired",
+      label: "Rezervacija istekla",
+      textClass: "text-red-600",
+      badgeClass:
+        "rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-600",
+      remainingLabel: "Istekla",
+    };
+  }
+
+  if (!hasTrackingPing(item)) {
+    const label =
+      item.status === "expired"
+        ? "Nema GPS pinga"
+        : item.status === "completed"
+        ? "Praćenje završeno"
+        : item.status === "cancelled"
+        ? "Praćenje prekinuto"
+        : "Čeka prvi ping";
+
+    return {
+      kind: "no_ping",
+      label,
+      textClass: "text-amber-700",
+      badgeClass:
+        "rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700",
+      remainingLabel: item.status === "active" ? "Čeka ping" : "Nema praćenja",
+    };
+  }
+
+  if (isOutsideRadius(item)) {
+    return {
+      kind: "outside",
+      label: "Van radijusa",
+      textClass: "text-red-600",
+      badgeClass:
+        "rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-600",
+      remainingLabel:
+        typeof item.remaining_grace_minutes === "number"
+          ? `${item.remaining_grace_minutes} min`
+          : "Van radijusa",
+    };
+  }
+
+  if (item.status === "completed") {
+    return {
+      kind: "completed",
+      label: "Praćenje završeno",
+      textClass: "text-slate-500",
+      badgeClass:
+        "rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600",
+      remainingLabel: "Završeno",
+    };
+  }
+
+  if (item.status === "cancelled") {
+    return {
+      kind: "cancelled",
+      label: "Praćenje prekinuto",
+      textClass: "text-slate-500",
+      badgeClass:
+        "rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600",
+      remainingLabel: "Prekinuto",
+    };
+  }
+
+  return {
+    kind: "inside",
+    label: "U radijusu",
+    textClass: "text-emerald-700",
+    badgeClass:
+      "rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700",
+    remainingLabel: "U radijusu",
+  };
+}
+
+function formatCancellationReason(reason) {
+  if (!reason) return "Bez napomene";
+  if (reason === "outside_radius_timeout") return "Van radijusa duže od 60 min";
+  if (reason === "cancelled_by_user") return "Otkazao student";
+
+  return reason;
 }
 
 export default AdminCitaona;

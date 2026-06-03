@@ -30,6 +30,9 @@ const getMe = async (req, res) => {
   }
 };
 
+const normalizeBoolean = (value) =>
+  value === true || value === "true" || value === 1 || value === "1";
+
 const getAllUsers = async (req, res) => {
   try {
     const search = `%${req.query.search || ""}%`;
@@ -198,6 +201,44 @@ const updateMyProfileImage = async (req, res) => {
   }
 };
 
+const updateMyPreferences = async (req, res) => {
+  try {
+    const { location_tracking_consent } = req.body;
+
+    if (location_tracking_consent === undefined) {
+      return res.status(400).json({
+        message: "Pošalji novu vrijednost za dozvolu praćenja lokacije.",
+      });
+    }
+
+    const result = await pool.query(
+      `
+      UPDATE users
+      SET location_tracking_consent = $1,
+          location_tracking_consent_updated_at = NOW(),
+          updated_at = NOW()
+      WHERE id = $2
+      RETURNING ${PROFILE_USER_COLUMNS}
+      `,
+      [normalizeBoolean(location_tracking_consent), req.user.id]
+    );
+
+    if (!result.rows[0]) {
+      return res.status(404).json({ message: "Korisnik nije pronađen." });
+    }
+
+    res.json({
+      message: "Podešavanje lokacije je sačuvano.",
+      user: result.rows[0],
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Greška pri čuvanju podešavanja lokacije.",
+      error: error.message,
+    });
+  }
+};
+
 const deleteUser = async (req, res) => {
   const { id } = req.params;
 
@@ -260,4 +301,5 @@ module.exports = {
   updateUser,
   deleteUser,
   updateMyProfileImage,
+  updateMyPreferences,
 };

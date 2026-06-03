@@ -61,6 +61,7 @@ const Register = () => {
     dorm: "",
     index_number: "",
     admin_module: "",
+    location_tracking_consent: false,
   });
 
   const [message, setMessage] = useState("");
@@ -69,12 +70,12 @@ const Register = () => {
   const isDomAdmin = isAdministration && form.admin_module === "dom";
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
 
     setForm((prev) => {
       const next = {
         ...prev,
-        [name]: value,
+        [name]: type === "checkbox" ? checked : value,
       };
 
       if (name === "faculty" && value !== "Administracija") {
@@ -84,6 +85,7 @@ const Register = () => {
       if (name === "faculty" && value === "Administracija") {
         next.dorm = "";
         next.index_number = "";
+        next.location_tracking_consent = false;
       }
 
       if (name === "admin_module" && value !== "dom") {
@@ -132,6 +134,9 @@ const Register = () => {
         index_number: isAdministration
           ? `ADMIN-${form.admin_module.toUpperCase()}`
           : form.index_number,
+        location_tracking_consent: isAdministration
+          ? false
+          : form.location_tracking_consent,
         role: "student",
         admin_module: isAdministration ? form.admin_module : null,
       };
@@ -256,6 +261,34 @@ const Register = () => {
               value={form.index_number}
               onChange={handleChange}
             />
+          )}
+
+          {!isAdministration && (
+            <label className="mb-4 block rounded-[16px] border border-[#4c8ddd]/45 bg-[#041b48]/80 p-4 text-left">
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  name="location_tracking_consent"
+                  checked={form.location_tracking_consent}
+                  onChange={handleChange}
+                  className="mt-1 h-4 w-4 rounded border-[#4c8ddd]/45"
+                />
+
+                <div>
+                  <p className="text-sm font-bold text-white">
+                    Dozvoljavam praćenje lokacije za dnevnu rezervaciju čitaonice
+                  </p>
+
+                  <p className="mt-2 text-xs leading-5 text-blue-100/80">
+                    Ako uključiš ovu opciju, kada rezervišeš čitaonicu mjesto važi
+                    za cijeli radni dan, a aplikacija prati da li si u radijusu od
+                    30 m od lokacije čitaonice. Ako si van tog radijusa duže od 60
+                    minuta, rezervacija se automatski otkazuje. Ako opciju ne
+                    uključiš, ostaje standardna rezervacija do 5 sati.
+                  </p>
+                </div>
+              </div>
+            </label>
           )}
 
           <div className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-blue-100/85">

@@ -7,6 +7,7 @@ import {
   ImagePlus,
   KeyRound,
   Mail,
+  MapPin,
   Save,
 } from "lucide-react";
 
@@ -41,6 +42,9 @@ function Profil() {
   const [avatarName, setAvatarName] = useState("");
   const [avatarMessage, setAvatarMessage] = useState("");
   const [isSavingAvatar, setIsSavingAvatar] = useState(false);
+  const [locationTrackingConsent, setLocationTrackingConsent] = useState(false);
+  const [preferenceMessage, setPreferenceMessage] = useState("");
+  const [isSavingPreferences, setIsSavingPreferences] = useState(false);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -54,6 +58,10 @@ function Profil() {
 
     loadProfile();
   }, []);
+
+  useEffect(() => {
+    setLocationTrackingConsent(user?.location_tracking_consent === true);
+  }, [user?.location_tracking_consent]);
 
   const rows = [
     { label: "Email adresa", value: user?.email || "-", icon: Mail },
@@ -180,6 +188,27 @@ function Profil() {
     }
   };
 
+  const savePreferences = async () => {
+    try {
+      setIsSavingPreferences(true);
+      setPreferenceMessage("");
+
+      const res = await api.put("/users/me/preferences", {
+        location_tracking_consent: locationTrackingConsent,
+      });
+
+      updateStoredUser(res.data.user);
+      setPreferenceMessage(res.data.message);
+    } catch (error) {
+      setPreferenceMessage(
+        error.response?.data?.message ||
+          "Greška pri čuvanju podešavanja lokacije."
+      );
+    } finally {
+      setIsSavingPreferences(false);
+    }
+  };
+
   return (
     <MainLayout>
       <section className="min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6 lg:p-8">
@@ -288,6 +317,63 @@ function Profil() {
           })}
         </div>
       </section>
+
+      {user?.role === "student" && (
+        <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6 lg:p-8">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0b3a8f]/10 text-[#0b3a8f]">
+              <MapPin size={22} />
+            </div>
+
+            <div className="min-w-0">
+              <h2 className="text-xl font-bold text-[#10243A] md:text-2xl">
+                Praćenje lokacije za čitaonicu
+              </h2>
+
+              <p className="mt-2 break-words text-sm leading-6 text-slate-500">
+                Kada je opcija uključena, rezervacija mjesta u čitaonici važi za
+                cijeli radni dan i aplikacija prati da li si u radijusu od 30 m
+                od adrese 2 Cetinjski Put, Podgorica 81000, Crna Gora. Ako si
+                van tog radijusa duže od 60 minuta, mjesto se automatski oslobađa.
+              </p>
+            </div>
+          </div>
+
+          <label className="mt-6 flex items-start gap-3 rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] p-4">
+            <input
+              type="checkbox"
+              checked={locationTrackingConsent}
+              onChange={(event) =>
+                setLocationTrackingConsent(event.target.checked)
+              }
+              className="mt-1 h-4 w-4"
+            />
+
+            <span className="text-sm font-semibold leading-6 text-[#10243A]">
+              Dozvoljavam StudMate aplikaciji da prati moju lokaciju dok imam
+              aktivnu dnevnu rezervaciju u čitaonici.
+            </span>
+          </label>
+
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              onClick={savePreferences}
+              disabled={isSavingPreferences}
+              className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#0b3a8f] px-5 text-sm font-bold text-white transition hover:bg-[#082d70] disabled:cursor-not-allowed disabled:bg-slate-300"
+            >
+              <Save size={18} />
+              {isSavingPreferences ? "Čuvanje..." : "Sačuvaj podešavanje"}
+            </button>
+
+            {preferenceMessage && (
+              <div className="rounded-2xl bg-[#0b3a8f]/10 px-4 py-3 text-sm font-bold text-[#0b3a8f]">
+                {preferenceMessage}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6 lg:p-8">
         <div className="mb-6 flex items-center gap-3">

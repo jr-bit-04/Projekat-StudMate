@@ -1,11 +1,14 @@
 import Sidebar from "./Sidebar";
 import MobileNav from "./MobileNav";
+import CitaonaLocationTracker from "../citaona/CitaonaLocationTracker";
 
 import loginBg from "../../assets/background.png";
 
 function MainLayout({ children }) {
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#0b3a8f] pb-24 lg:pb-0">
+      <CitaonaLocationTracker />
+
       <div
         className="fixed inset-0 bg-cover bg-center bg-no-repeat"
         style={{

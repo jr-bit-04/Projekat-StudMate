@@ -7,7 +7,8 @@ const PUBLIC_USER_COLUMNS = `
   dorm,
   index_number,
   admin_module,
-  profile_image_path AS profile_image_url
+  profile_image_path AS profile_image_url,
+  location_tracking_consent
 `;
 
 const PROFILE_USER_COLUMNS = `
