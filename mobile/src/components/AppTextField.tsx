@@ -6,13 +6,15 @@ import {
   View,
 } from "react-native";
 
+import { AppIcon, IconName } from "./AppIcon";
+
 interface AppTextFieldProps extends TextInputProps {
-  icon?: string;
+  icon?: IconName;
   label?: string;
 }
 
 export function AppTextField({
-  icon = "i",
+  icon = "info",
   label,
   style,
   ...props
@@ -21,14 +23,13 @@ export function AppTextField({
     <View style={styles.wrapper}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
       <View style={styles.inputWrap}>
-        <Text style={styles.leftIcon}>{icon}</Text>
+        <AppIcon name={icon} size={19} color="#4DA3FF" style={styles.leftIcon} />
         <TextInput
           placeholderTextColor="#AFC9F4"
           selectionColor="#62A8FF"
           style={[styles.input, style]}
           {...props}
         />
-        <Text style={styles.rightIcon}>i</Text>
       </View>
     </View>
   );
@@ -60,18 +61,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   leftIcon: {
-    color: "#4DA3FF",
-    fontSize: 18,
-    fontWeight: "800",
     marginRight: 12,
-    textAlign: "center",
-    width: 18,
-  },
-  rightIcon: {
-    color: "#4DA3FF",
-    fontSize: 14,
-    fontWeight: "800",
-    marginLeft: 8,
   },
   wrapper: {
     gap: 0,

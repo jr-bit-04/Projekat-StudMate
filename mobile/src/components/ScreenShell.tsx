@@ -17,6 +17,7 @@ import backgroundArt from "../assets/background.png";
 import ucgLogo from "../assets/ucg-logo.png";
 import { useAuth } from "../context/AuthContext";
 import { colors } from "../theme/colors";
+import { AppIcon } from "./AppIcon";
 import { AvatarCircle } from "./AvatarCircle";
 
 interface ScreenShellProps extends PropsWithChildren {
@@ -115,7 +116,7 @@ export function ScreenShell({
                     pressed ? styles.backButtonPressed : null,
                   ]}
                 >
-                  <Text style={styles.backButtonArrow}>{"<"}</Text>
+                  <AppIcon name="back" size={18} color={colors.white} />
                   {!isCompact ? (
                     <Text style={styles.backButtonText}>Nazad</Text>
                   ) : null}

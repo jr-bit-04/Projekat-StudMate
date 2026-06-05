@@ -46,7 +46,7 @@ export function PopustiScreen() {
       setPopusti(response.data.popusti || []);
       setPartneri(response.data.partneri || []);
     } catch (error) {
-      setMessage(getApiErrorMessage(error, "Greska pri ucitavanju popusta."));
+      setMessage(getApiErrorMessage(error, "Greška pri učitavanju popusta."));
     }
   }, []);
 
@@ -121,10 +121,10 @@ export function PopustiScreen() {
       >
         {message ? <StatusBanner text={message} tone="danger" /> : null}
 
-        <SectionCard subtitle="Pretrazi i izdvoji ponude koje te zanimaju." title="Pretraga">
+        <SectionCard subtitle="Pretraži i izdvoji ponude koje te zanimaju." title="Pretraga">
           <TextInput
             onChangeText={setSearch}
-            placeholder="Partner ili kljucna rijec..."
+            placeholder="Partner ili ključna riječ..."
             placeholderTextColor="#7a8696"
             style={styles.input}
             value={search}
@@ -149,7 +149,7 @@ export function PopustiScreen() {
           </ScrollView>
 
           <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>Prikazi istekle ponude</Text>
+            <Text style={styles.switchLabel}>Prikaži istekle ponude</Text>
             <Switch
               onValueChange={setShowExpired}
               trackColor={{ false: "#d3d6dc", true: colors.primary }}
@@ -160,7 +160,7 @@ export function PopustiScreen() {
 
         <SectionCard title="Ponude">
           {filteredPopusti.length === 0 ? (
-            <Text style={styles.emptyText}>Nema pronadjenih popusta.</Text>
+            <Text style={styles.emptyText}>Nema pronađenih popusta.</Text>
           ) : (
             filteredPopusti.map((item) => (
               <Pressable
@@ -187,7 +187,7 @@ export function PopustiScreen() {
                 </Text>
                 <Text style={styles.expiryText}>
                   {item.valid_until
-                    ? `Vazi do ${formatDate(item.valid_until)}`
+                    ? `Važi do ${formatDate(item.valid_until)}`
                     : "Trajna ponuda"}
                 </Text>
               </Pressable>

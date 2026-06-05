@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useCallback, useEffect, useState } from "react";
 
 import { api, getApiErrorMessage } from "../../api/client";
+import { AppIcon, IconName } from "../../components/AppIcon";
 import { AvatarCircle } from "../../components/AvatarCircle";
 import { InfoBadge } from "../../components/InfoBadge";
 import { ScreenShell } from "../../components/ScreenShell";
@@ -37,36 +38,57 @@ const shortcuts: Array<{
   title: string;
   route: keyof Omit<MainStackParamList, "Dashboard">;
   description: string;
+  icon: IconName;
+  badgeBg: string;
+  badgeColor: string;
 }> = [
   {
-    title: "Citaona",
-    route: "Citaona",
-    description: "Rezervacije, pracenje i status mjesta.",
+    title: "Dom",
+    route: "Dom",
+    description: "Mjesečne obaveze i novosti doma.",
+    icon: "dom",
+    badgeBg: "rgba(11,58,143,0.1)",
+    badgeColor: "#0B3A8F",
   },
   {
     title: "Menza",
     route: "Menza",
-    description: "Meni, bonovi i obavjestenja.",
+    description: "Meni, bonovi i obavještenja.",
+    icon: "menza",
+    badgeBg: "#E8F5EC",
+    badgeColor: "#15803D",
   },
   {
-    title: "Dom",
-    route: "Dom",
-    description: "Mjesecne obaveze i novosti doma.",
+    title: "Čitaona",
+    route: "Citaona",
+    description: "Rezervacije, praćenje i status mjesta.",
+    icon: "citaona",
+    badgeBg: "#F3E8FF",
+    badgeColor: "#7E22CE",
   },
   {
     title: "Popusti",
     route: "Popusti",
     description: "Aktivne pogodnosti i partneri.",
+    icon: "popusti",
+    badgeBg: "#FEF3C7",
+    badgeColor: "#B45309",
   },
   {
     title: "Stipendije",
     route: "Stipendije",
     description: "Konkursi, rokovi i detalji prijave.",
+    icon: "stipendije",
+    badgeBg: "#FFE4E6",
+    badgeColor: "#BE123C",
   },
   {
     title: "Profil",
     route: "Profil",
     description: "Lozinka, profilna slika i lokacija.",
+    icon: "profil",
+    badgeBg: "#EEF5FF",
+    badgeColor: "#0B3A8F",
   },
 ];
 
@@ -80,6 +102,7 @@ export function DashboardScreen({ navigation }: Props) {
   });
   const [message, setMessage] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [showModules, setShowModules] = useState(false);
 
   const loadDashboard = useCallback(async () => {
     try {
@@ -93,7 +116,7 @@ export function DashboardScreen({ navigation }: Props) {
       });
     } catch (error) {
       setMessage(
-        getApiErrorMessage(error, "Greska pri ucitavanju pocetne stranice.")
+        getApiErrorMessage(error, "Greška pri učitavanju početne stranice.")
       );
     }
   }, []);
@@ -124,7 +147,7 @@ export function DashboardScreen({ navigation }: Props) {
               {user?.name || "Student"}
             </Text>
             <Text numberOfLines={1} style={styles.identityMeta}>
-              {user?.email || "Profil nije ucitan"}
+              {user?.email || "Profil nije učitan"}
             </Text>
           </View>
         </Pressable>
@@ -140,13 +163,13 @@ export function DashboardScreen({ navigation }: Props) {
         loadDashboard().finally(() => setRefreshing(false));
       }}
       refreshing={refreshing}
-      subtitle="Tvoje obavjestenja, pogodnosti i studentske obaveze na jednom mjestu."
+      subtitle="Tvoja obavještenja, pogodnosti i studentske obaveze na jednom mjestu."
       title={`Zdravo, ${user?.name?.split(" ")[0] || "studente"}`}
     >
       {message ? <StatusBanner text={message} tone="danger" /> : null}
 
       <SectionCard
-        subtitle="Najvaznije stvari koje te cekaju danas."
+        subtitle="Najvažnije stvari koje te čekaju danas."
         title="Brzi pregled"
       >
         <View style={styles.summaryGrid}>
@@ -157,41 +180,70 @@ export function DashboardScreen({ navigation }: Props) {
           />
           <SummaryTile label="Menza danas" value={String(data.menu.length)} />
           <SummaryTile
-            label="Obavjestenja"
+            label="Obavještenja"
             value={String(data.announcements.length)}
           />
         </View>
       </SectionCard>
 
       <SectionCard
-        subtitle="Najbrzi put do svakog studentskog modula."
-        title="Precice"
+        subtitle="Brzi pristup glavnim modulima i aplikacijama."
+        title="Moduli"
       >
-        <View style={styles.shortcutGrid}>
-          {shortcuts.map((shortcut) => (
-            <Pressable
-              key={shortcut.route}
-              onPress={() => navigation.navigate(shortcut.route as never)}
-              style={({ pressed }) => [
-                styles.shortcutCard,
-                pressed ? styles.shortcutPressed : null,
-              ]}
-            >
-              <Text style={styles.shortcutTitle}>{shortcut.title}</Text>
-              <Text style={styles.shortcutDescription}>
-                {shortcut.description}
-              </Text>
-            </Pressable>
-          ))}
+        <View style={styles.moduleHeaderRow}>
+          <Text style={styles.moduleTitle}>Aplikacijski launcher</Text>
+          <Pressable
+            onPress={() => setShowModules((current) => !current)}
+            style={({ pressed }) => [
+              styles.moduleToggleButton,
+              pressed ? styles.shortcutPressed : null,
+            ]}
+          >
+            <Text style={styles.moduleToggleText}>
+              {showModules ? "Sakrij" : "Prikaži"}
+            </Text>
+          </Pressable>
         </View>
+        {showModules ? (
+          <View style={styles.moduleGrid}>
+            {shortcuts.map((shortcut) => (
+              <Pressable
+                key={shortcut.route}
+                onPress={() => navigation.navigate(shortcut.route as never)}
+                style={({ pressed }) => [
+                  styles.moduleItem,
+                  pressed ? styles.shortcutPressed : null,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.shortcutBadge,
+                    { backgroundColor: shortcut.badgeBg },
+                  ]}
+                >
+                  <AppIcon
+                    name={shortcut.icon}
+                    size={22}
+                    color={shortcut.badgeColor}
+                  />
+                </View>
+                <Text style={styles.shortcutTitle}>{shortcut.title}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.moduleHint}>
+            Pritisni dugme da vidiš sve module i brzo otvoriš željenu stranicu.
+          </Text>
+        )}
       </SectionCard>
 
       <SectionCard
-        subtitle="Najnovije informacije koje su ti trenutno vazne."
-        title="Obavjestenja"
+        subtitle="Najnovije informacije koje su ti trenutno važne."
+        title="Obavještenja"
       >
         {data.announcements.length === 0 ? (
-          <EmptyState text="Trenutno nema novih obavjestenja." />
+          <EmptyState text="Trenutno nema novih obavještenja." />
         ) : (
           data.announcements.slice(0, 4).map((item) => (
             <View key={item.id} style={styles.listCard}>
@@ -233,7 +285,7 @@ export function DashboardScreen({ navigation }: Props) {
               <Text style={styles.cardTitle}>{item.naslov}</Text>
               <Text style={styles.cardBody}>
                 {item.partner_naziv || "Partner"}
-                {item.valid_until ? ` - vazi do ${formatDate(item.valid_until)}` : ""}
+                {item.valid_until ? ` - važi do ${formatDate(item.valid_until)}` : ""}
               </Text>
             </Pressable>
           ))
@@ -269,11 +321,11 @@ export function DashboardScreen({ navigation }: Props) {
       </SectionCard>
 
       <SectionCard
-        subtitle="Pregled danasnje ponude u menzi."
+        subtitle="Pregled današnje ponude u menzi."
         title="Menza danas"
       >
         {data.menu.length === 0 ? (
-          <EmptyState text="Za danas jos nema unesenog menija." />
+          <EmptyState text="Za danas još nema unesenog menija." />
         ) : (
           data.menu.map((item) => (
             <Pressable
@@ -382,20 +434,89 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 8,
   },
+  shortcutBadge: {
+    alignItems: "center",
+    borderRadius: 16,
+    height: 48,
+    justifyContent: "center",
+    marginBottom: 12,
+    width: 48,
+  },
   shortcutCard: {
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: colors.surface,
     borderColor: colors.border,
     borderRadius: 22,
     borderWidth: 1,
-    flexBasis: "100%",
-    minHeight: 104,
+    flexBasis: "47%",
+    flexGrow: 1,
+    minHeight: 150,
     padding: 16,
+  },
+  shortcutCta: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 6,
+    marginTop: 12,
+  },
+  shortcutCtaText: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: "800",
   },
   shortcutDescription: {
     color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 6,
+  },
+  moduleGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginTop: 12,
+  },
+  moduleHeaderRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  moduleHint: {
+    color: colors.textMuted,
     fontSize: 14,
     lineHeight: 20,
-    marginTop: 8,
+    marginTop: 12,
+  },
+  moduleItem: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: 22,
+    borderWidth: 1,
+    flexBasis: "31%",
+    minHeight: 124,
+    justifyContent: "center",
+    padding: 14,
+    width: "31%",
+  },
+  moduleTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  moduleToggleButton: {
+    alignItems: "center",
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: 16,
+    borderColor: colors.border,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  moduleToggleText: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: "800",
   },
   shortcutGrid: {
     flexDirection: "row",
@@ -408,7 +529,7 @@ const styles = StyleSheet.create({
   },
   shortcutTitle: {
     color: colors.text,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "800",
   },
   summaryGrid: {

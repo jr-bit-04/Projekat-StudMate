@@ -54,7 +54,7 @@ export function DomScreen() {
       setObavjestenja(response.data.obavjestenja || []);
       setLastUpdated(response.data.lastUpdated || null);
     } catch (error) {
-      setMessage(getApiErrorMessage(error, "Greska pri ucitavanju doma."));
+      setMessage(getApiErrorMessage(error, "Greška pri učitavanju doma."));
     }
   }, []);
 
@@ -85,7 +85,7 @@ export function DomScreen() {
         loadDom().finally(() => setRefreshing(false));
       }}
       refreshing={refreshing}
-      subtitle="Mjesecne obaveze i obavjestenja doma."
+      subtitle="Mjesečne obaveze i obavještenja doma."
       title="Dom i obaveze"
     >
       {message ? <StatusBanner text={message} tone="danger" /> : null}
@@ -94,7 +94,7 @@ export function DomScreen() {
         <View style={styles.infoGrid}>
           <InfoTile label="Dom" value={user?.dorm || "Nije dodijeljen"} />
           <InfoTile
-            label="Poslednje azuriranje"
+            label="Posljednje ažuriranje"
             value={formatDateTime(lastUpdated, "Nije dostupno")}
           />
         </View>
@@ -104,16 +104,16 @@ export function DomScreen() {
         right={
           <Pressable onPress={() => setShowNotices((value) => !value)}>
             <Text style={styles.linkText}>
-              {showNotices ? "Sakrij" : "Prikazi"}
+              {showNotices ? "Sakrij" : "Prikaži"}
             </Text>
           </Pressable>
         }
         subtitle="Najnovije informacije vezane za dom."
-        title="Obavjestenja"
+        title="Obavještenja"
       >
         {showNotices ? (
           obavjestenja.length === 0 ? (
-            <Text style={styles.emptyText}>Trenutno nema obavjestenja za dom.</Text>
+            <Text style={styles.emptyText}>Trenutno nema obavještenja za dom.</Text>
           ) : (
             obavjestenja.map((item) => (
               <View key={item.id} style={styles.noticeCard}>
@@ -128,15 +128,15 @@ export function DomScreen() {
           )
         ) : (
           <Text style={styles.emptyText}>
-            Dodirni "Prikazi" da otvoris obavjestenja doma.
+            Dodirni "Prikaži" da otvoriš obavještenja doma.
           </Text>
         )}
       </SectionCard>
 
       <SectionCard subtitle="Pregled obaveza i statusa po mjesecima." title="Pregled po mjesecima">
         <View style={styles.legendRow}>
-          <LegendChip tone="danger" text="Neplaceno" />
-          <LegendChip tone="success" text="Placeno" />
+          <LegendChip tone="danger" text="Neplaćeno" />
+          <LegendChip tone="success" text="Plaćeno" />
           <LegendChip tone="primary" text="Ne boravi" />
         </View>
 
@@ -170,17 +170,17 @@ export function DomScreen() {
         <DetailRow label="Period" value={getPeriod(selectedObligation)} />
         <DetailRow label="Status" value={formatStatus(selectedObligation?.status)} />
         <DetailRow label="Iznos" value={formatMoney(selectedObligation?.iznos, "Nije dostupno")} />
-        <DetailRow label="Uplaceno" value={formatMoney(selectedObligation?.uplaceno, "Nije dostupno")} />
+        <DetailRow label="Uplaćeno" value={formatMoney(selectedObligation?.uplaceno, "Nije dostupno")} />
         <DetailRow
           label="Datum uplate"
-          value={formatDateTime(selectedObligation?.paid_at, "Nije placeno")}
+          value={formatDateTime(selectedObligation?.paid_at, "Nije plaćeno")}
         />
         <DetailRow
           label="Rok za uplatu"
           value={formatDate(selectedObligation?.due_date, "Nije dostupno")}
         />
         <DetailRow
-          label="Poslednje azurirano"
+          label="Posljednje ažurirano"
           value={formatDateTime(selectedObligation?.updated_at, "Nije dostupno")}
         />
       </SectionCard>
@@ -196,8 +196,8 @@ function formatStatus(status?: string | null) {
   const normalized = String(status || "").toLowerCase();
 
   if (!status) return "Nije definisano";
-  if (normalized === "paid" || normalized === "placeno") return "Placeno";
-  if (normalized === "unpaid" || normalized === "neplaceno") return "Neplaceno";
+  if (normalized === "paid" || normalized === "placeno") return "Plaćeno";
+  if (normalized === "unpaid" || normalized === "neplaceno") return "Neplaćeno";
   if (normalized === "inactive") return "Student ne boravi u domu";
   return status;
 }

@@ -86,13 +86,13 @@ export function ProfilScreen() {
 
     const asset = result.assets[0];
     if (!asset.base64) {
-      setAvatarMessage("Nije uspjelo ucitavanje slike.");
+      setAvatarMessage("Nije uspjelo učitavanje slike.");
       return;
     }
 
     const fileSize = asset.fileSize || 0;
     if (fileSize > MAX_AVATAR_SIZE_MB * 1024 * 1024) {
-      setAvatarMessage("Profilna slika moze imati najvise 4 MB.");
+      setAvatarMessage("Profilna slika može imati najviše 4 MB.");
       return;
     }
 
@@ -123,10 +123,10 @@ export function ProfilScreen() {
       setAvatarData("");
       setAvatarPreview("");
       setAvatarName("");
-      setAvatarMessage(response.data.message || "Profilna slika je sacuvana.");
+      setAvatarMessage(response.data.message || "Profilna slika je sačuvana.");
     } catch (error) {
       setAvatarMessage(
-        getApiErrorMessage(error, "Greska pri cuvanju profilne slike.")
+        getApiErrorMessage(error, "Greška pri čuvanju profilne slike.")
       );
     } finally {
       setIsSavingAvatar(false);
@@ -143,10 +143,10 @@ export function ProfilScreen() {
       });
 
       await replaceUser(response.data.user);
-      setPreferenceMessage(response.data.message || "Podesavanje je sacuvano.");
+      setPreferenceMessage(response.data.message || "Podešavanje je sačuvano.");
     } catch (error) {
       setPreferenceMessage(
-        getApiErrorMessage(error, "Greska pri cuvanju podesavanja.")
+        getApiErrorMessage(error, "Greška pri čuvanju podešavanja.")
       );
     } finally {
       setIsSavingPreferences(false);
@@ -182,14 +182,14 @@ export function ProfilScreen() {
         await replaceUser(response.data.user);
       }
 
-      setMessage(response.data?.message || "Lozinka je sacuvana.");
+      setMessage(response.data?.message || "Lozinka je sačuvana.");
       setForm({
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
     } catch (error) {
-      setMessage(getApiErrorMessage(error, "Greska pri promjeni lozinke."));
+      setMessage(getApiErrorMessage(error, "Greška pri promjeni lozinke."));
     } finally {
       setIsSavingPassword(false);
     }
@@ -258,7 +258,7 @@ export function ProfilScreen() {
             ]}
           >
             <Text style={styles.primaryButtonText}>
-              {isSavingAvatar ? "Cuvanje..." : "Sacuvaj sliku"}
+              {isSavingAvatar ? "Čuvanje..." : "Sačuvaj sliku"}
             </Text>
           </Pressable>
         </View>
@@ -282,12 +282,12 @@ export function ProfilScreen() {
 
       {user?.role === "student" ? (
         <SectionCard
-          subtitle="Dnevna rezervacija citaonice koristi lokaciju da provjeri da li si u dozvoljenom radijusu."
-          title="Lokacija za citaonicu"
+          subtitle="Dnevna rezervacija čitaonice koristi lokaciju da provjeri da li si u dozvoljenom radijusu."
+          title="Lokacija za čitaonicu"
         >
           <View style={styles.preferenceRow}>
             <Text style={styles.preferenceText}>
-              Dozvoljavam StudMate aplikaciji da prati moju lokaciju dok imam aktivnu dnevnu rezervaciju u citaonici.
+              Dozvoljavam StudMate aplikaciji da prati moju lokaciju dok imam aktivnu dnevnu rezervaciju u čitaonici.
             </Text>
             <Switch
               onValueChange={setLocationTrackingConsent}
@@ -297,7 +297,7 @@ export function ProfilScreen() {
           </View>
 
           <AppButton
-            label={isSavingPreferences ? "Cuvanje..." : "Sacuvaj podesavanje"}
+            label={isSavingPreferences ? "Čuvanje..." : "Sačuvaj podešavanje"}
             loading={isSavingPreferences}
             onPress={savePreferences}
           />
@@ -308,7 +308,7 @@ export function ProfilScreen() {
         </SectionCard>
       ) : null}
 
-      <SectionCard subtitle="Promijeni lozinku i zastiti svoj nalog." title="Promjena lozinke">
+      <SectionCard subtitle="Promijeni lozinku i zaštiti svoj nalog." title="Promjena lozinke">
         <TextInput
           onChangeText={(value) =>
             setForm((current) => ({ ...current, currentPassword: value }))
@@ -341,13 +341,13 @@ export function ProfilScreen() {
         />
 
         <AppButton
-          label={isSavingPassword ? "Cuvanje..." : "Sacuvaj lozinku"}
+          label={isSavingPassword ? "Čuvanje..." : "Sačuvaj lozinku"}
           loading={isSavingPassword}
           onPress={changePassword}
         />
       </SectionCard>
 
-      <SectionCard subtitle="Sesija ostaje prijavljena dok sama ne kliknes odjavu." title="Nalog">
+      <SectionCard subtitle="Sesija ostaje prijavljena dok sama ne klikneš odjavu." title="Nalog">
         <AppButton
           label="Odjavi se"
           loading={isSubmitting}

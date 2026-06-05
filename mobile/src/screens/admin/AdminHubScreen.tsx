@@ -53,7 +53,7 @@ export function AdminHubScreen({ navigation }: Props) {
         "Profil i odjava",
       ]}
       image={heroImage}
-      subtitle="Izaberi sektor koji zelis da uredjujes."
+      subtitle="Izaberi sektor koji želiš da uređuješ."
       title="Admin panel"
     >
       <SectionCard

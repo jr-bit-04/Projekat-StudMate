@@ -12,6 +12,7 @@ import {
 import backgroundArt from "../assets/background.png";
 import ucgLogo from "../assets/ucg-logo.png";
 import { colors } from "../theme/colors";
+import { AppIcon, IconName } from "./AppIcon";
 
 interface AuthShellProps extends PropsWithChildren {
   brandCaption?: string;
@@ -67,11 +68,11 @@ export function AuthShell({
             </View>
 
             <View style={styles.featuresRow}>
-              <Feature icon="D" label="Dom" />
-              <Feature icon="M" label="Menza" />
-              <Feature icon="C" label="Citaona" />
-              <Feature icon="P" label="Popusti" />
-              <Feature icon="I" label="Info" />
+              <Feature icon="dom" label="Dom" />
+              <Feature icon="menza" label="Menza" />
+              <Feature icon="citaona" label="Čitaona" />
+              <Feature icon="popusti" label="Popusti" />
+              <Feature icon="info" label="Info" />
             </View>
           </View>
 
@@ -86,13 +87,13 @@ function Feature({
   icon,
   label,
 }: {
-  icon: string;
+  icon: IconName;
   label: string;
 }) {
   return (
     <View style={styles.featureItem}>
       <View style={styles.featureBadge}>
-        <Text style={styles.featureBadgeText}>{icon}</Text>
+        <AppIcon name={icon} size={18} color="#3F94FF" />
       </View>
       <Text style={styles.featureLabel}>{label}</Text>
     </View>

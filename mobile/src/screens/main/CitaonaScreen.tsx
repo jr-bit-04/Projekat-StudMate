@@ -104,7 +104,7 @@ export function CitaonaScreen() {
       setTracking(response.data.tracking || defaultTracking);
       setSelectedSeat(null);
     } catch (error) {
-      setMessage(getApiErrorMessage(error, "Greska pri ucitavanju citaonice."));
+      setMessage(getApiErrorMessage(error, "Greška pri učitavanju čitaonice."));
     }
   }, [datum, trajanje, vrijemeOd]);
 
@@ -121,7 +121,7 @@ export function CitaonaScreen() {
 
       if (payload.reservation?.status === "cancelled") {
         setTrackingMessage(
-          "Rezervacija u citaonici je auto-otkazana jer je korisnik bio van dozvoljenog radijusa duze od dozvoljenog vremena."
+          "Rezervacija u čitaonici je auto-otkazana jer je korisnik bio van dozvoljenog radijusa duže od dozvoljenog vremena."
         );
       }
 
@@ -142,14 +142,14 @@ export function CitaonaScreen() {
       setSuccess("");
 
       if (isDailyTrackingMode && !tracking.reservation_window) {
-        setMessage("Za izabrani dan vise nema dostupnog radnog vremena za pracenu dnevnu rezervaciju.");
+        setMessage("Za izabrani dan više nema dostupnog radnog vremena za praćenu dnevnu rezervaciju.");
         return;
       }
 
       if (isDailyTrackingMode) {
         const granted = await ensureForegroundLocationPermission();
         if (!granted) {
-          setMessage("Za dnevnu rezervaciju moras dozvoliti lokaciju na telefonu.");
+          setMessage("Za dnevnu rezervaciju moraš dozvoliti lokaciju na telefonu.");
           return;
         }
       }
@@ -165,20 +165,20 @@ export function CitaonaScreen() {
 
       setSuccess(
         response.data?.message ||
-          `Rezervacija je uspjesna. Tvoj kod je ${response.data?.rezervacija?.kod}.`
+          `Rezervacija je uspješna. Tvoj kod je ${response.data?.rezervacija?.kod}.`
       );
       await loadCitaona();
     } catch (error) {
-      setMessage(getApiErrorMessage(error, "Greska pri kreiranju rezervacije."));
+      setMessage(getApiErrorMessage(error, "Greška pri kreiranju rezervacije."));
     }
   }
 
   function confirmCancel(id: number) {
-    Alert.alert("Otkazi rezervaciju", "Da li zelis da otkazes rezervaciju?", [
+    Alert.alert("Otkaži rezervaciju", "Da li želiš da otkažeš rezervaciju?", [
       { style: "cancel", text: "Nazad" },
       {
         style: "destructive",
-        text: "Otkazi",
+        text: "Otkaži",
         onPress: () => void cancelReservation(id),
       },
     ]);
@@ -190,19 +190,19 @@ export function CitaonaScreen() {
       setSuccess("Rezervacija je otkazana.");
       await loadCitaona();
     } catch (error) {
-      setMessage(getApiErrorMessage(error, "Greska pri otkazivanju rezervacije."));
+      setMessage(getApiErrorMessage(error, "Greška pri otkazivanju rezervacije."));
     }
   }
 
   function confirmClearHistory() {
     Alert.alert(
-      "Obrisi istoriju",
-      "Obrisati cijelu istoriju zavrsenih i otkazanih rezervacija?",
+      "Obriši istoriju",
+      "Obrisati cijelu istoriju završenih i otkazanih rezervacija?",
       [
         { style: "cancel", text: "Nazad" },
         {
           style: "destructive",
-          text: "Obrisi",
+          text: "Obriši",
           onPress: () => void clearHistory(),
         },
       ]
@@ -216,14 +216,14 @@ export function CitaonaScreen() {
       await loadCitaona();
     } catch (error) {
       setMessage(
-        getApiErrorMessage(error, "Greska pri brisanju istorije rezervacija.")
+        getApiErrorMessage(error, "Greška pri brisanju istorije rezervacija.")
       );
     }
   }
 
   return (
     <ScreenShell
-      eyebrow="Citaonica"
+      eyebrow="Čitaonica"
       highlights={[
         `Radijus ${tracking.radius_meters} m`,
         `Odsustvo ${tracking.grace_minutes} min`,
@@ -236,13 +236,13 @@ export function CitaonaScreen() {
       }}
       refreshing={refreshing}
       subtitle="Rezervacije mjesta, kodovi i lokacija za dnevne rezervacije."
-      title="Citaonica"
+      title="Čitaonica"
     >
       {message ? <StatusBanner text={message} tone="danger" /> : null}
       {success ? <StatusBanner text={success} tone="success" /> : null}
       {trackingMessage ? <StatusBanner text={trackingMessage} tone="warning" /> : null}
 
-      <SectionCard subtitle="Radno vrijeme i osnovne informacije o citaonici." title="Info">
+      <SectionCard subtitle="Radno vrijeme i osnovne informacije o čitaonici." title="Info">
         <View style={styles.infoGrid}>
           <InfoTile label="Kapacitet" value="30 mjesta" />
           <InfoTile label="Radni dani" value="07:00 - 21:00" />
@@ -341,7 +341,7 @@ export function CitaonaScreen() {
         />
         {!radi ? (
           <StatusBanner
-            text="Citaonica ne radi u izabranom terminu."
+            text="Čitaonica ne radi u izabranom terminu."
             tone="danger"
           />
         ) : null}
@@ -387,14 +387,14 @@ export function CitaonaScreen() {
         </View>
 
         <AppButton
-          label="Rezervisi mjesto"
+          label="Rezerviši mjesto"
           onPress={reserveSeat}
         />
       </SectionCard>
 
-      <SectionCard subtitle="Aktivne i cekajuce rezervacije." title="Moje rezervacije">
+      <SectionCard subtitle="Aktivne i čekajuće rezervacije." title="Moje rezervacije">
         {rezervacije.length === 0 ? (
-          <Text style={styles.emptyText}>Trenutno nemas aktivnih rezervacija.</Text>
+          <Text style={styles.emptyText}>Trenutno nemaš aktivnih rezervacija.</Text>
         ) : (
           rezervacije.map((item) => (
             <View key={item.id} style={styles.reservationCard}>
@@ -426,7 +426,7 @@ export function CitaonaScreen() {
                     onPress={() => confirmCancel(item.id)}
                     style={styles.cancelButton}
                   >
-                    <Text style={styles.cancelButtonText}>Otkazi</Text>
+                    <Text style={styles.cancelButtonText}>Otkaži</Text>
                   </Pressable>
                 ) : null}
               </View>
@@ -439,17 +439,17 @@ export function CitaonaScreen() {
         right={
           <Pressable onPress={() => setHistoryOpen((value) => !value)}>
             <Text style={styles.linkText}>
-              {historyOpen ? "Sakrij" : "Prikazi"}
+              {historyOpen ? "Sakrij" : "Prikaži"}
             </Text>
           </Pressable>
         }
-        subtitle="Istorija zavrsenih, isteklih i otkazanih rezervacija."
+        subtitle="Istorija završenih, isteklih i otkazanih rezervacija."
         title="Istorija"
       >
         {historyOpen ? (
           <>
             <Pressable onPress={confirmClearHistory} style={styles.clearButton}>
-              <Text style={styles.clearButtonText}>Obrisi zavrsenu istoriju</Text>
+              <Text style={styles.clearButtonText}>Obriši završenu istoriju</Text>
             </Pressable>
             {istorija.length === 0 ? (
               <Text style={styles.emptyText}>Istorija je prazna.</Text>
@@ -478,7 +478,7 @@ export function CitaonaScreen() {
           </>
         ) : (
           <Text style={styles.emptyText}>
-            Dodirni "Prikazi" da otvoris istoriju rezervacija.
+            Dodirni "Prikaži" da otvoriš istoriju rezervacija.
           </Text>
         )}
       </SectionCard>

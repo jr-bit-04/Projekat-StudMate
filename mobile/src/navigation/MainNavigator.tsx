@@ -30,7 +30,7 @@ export function MainNavigator() {
       <Stack.Screen
         name="Citaona"
         component={CitaonaScreen}
-        options={{ title: "Citaonica" }}
+        options={{ title: "Čitaonica" }}
       />
       <Stack.Screen
         name="Menza"

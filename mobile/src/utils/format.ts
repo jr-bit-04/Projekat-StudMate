@@ -124,7 +124,7 @@ export function getWeekDays(baseDate = new Date()) {
     "Ponedjeljak",
     "Utorak",
     "Srijeda",
-    "Cetvrtak",
+    "Četvrtak",
     "Petak",
     "Subota",
     "Nedjelja",
@@ -154,10 +154,10 @@ export function getInitials(name?: string | null) {
 export function reservationStatusLabel(status?: string | null) {
   const normalized = String(status || "").toLowerCase();
 
-  if (normalized === "pending") return "Ceka potvrdu";
+  if (normalized === "pending") return "Čeka potvrdu";
   if (normalized === "active") return "Aktivna";
   if (normalized === "expired") return "Istekla";
-  if (normalized === "completed") return "Zavrsena";
+  if (normalized === "completed") return "Završena";
   if (normalized === "cancelled") return "Otkazana";
 
   return status || "-";
@@ -177,8 +177,8 @@ export function reservationStatusTone(
 }
 
 export function mealLabel(type?: string | null) {
-  if (type === "dorucak") return "Dorucak";
-  if (type === "rucak") return "Rucak";
-  if (type === "vecera") return "Vecera";
+  if (type === "dorucak") return "Doručak";
+  if (type === "rucak") return "Ručak";
+  if (type === "vecera") return "Večera";
   return type || "Obrok";
 }

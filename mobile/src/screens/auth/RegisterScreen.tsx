@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { StyleSheet, Switch, Text, View } from "react-native";
 
 import { AppButton } from "../../components/AppButton";
+import { AppIcon } from "../../components/AppIcon";
 import { AuthSelectField } from "../../components/AuthSelectField";
 import { AppTextField } from "../../components/AppTextField";
 import { AuthShell } from "../../components/AuthShell";
@@ -23,22 +24,22 @@ const dormOptions = [
 const facultyOptions = [
   "Administracija",
   "Arhitektonski fakultet",
-  "Biotehnicki fakultet",
+  "Biotehnički fakultet",
   "Ekonomski fakultet",
-  "Elektrotehnicki fakultet",
-  "Fakultet politickih nauka",
-  "Masinski fakultet",
+  "Elektrotehnički fakultet",
+  "Fakultet političkih nauka",
+  "Mašinski fakultet",
   "Medicinski fakultet",
-  "Metalursko-tehnoloski fakultet",
-  "Muzicka akademija - Podgorica",
+  "Metalurško-tehnološki fakultet",
+  "Muzička akademija - Podgorica",
   "Pravni fakultet",
-  "Prirodno-matematicki fakultet",
+  "Prirodno-matematički fakultet",
 ];
 
 const adminOptions = [
   { label: "Menza", value: "menza" },
   { label: "Dom", value: "dom" },
-  { label: "Citaona", value: "citaona" },
+  { label: "Čitaona", value: "citaona" },
   { label: "Krediti / Stipendije", value: "stipendije" },
   { label: "Popusti", value: "popusti" },
 ];
@@ -160,24 +161,24 @@ export function RegisterScreen({ navigation }: Props) {
 
   return (
     <AuthShell
-      brandCaption="Kreiraj korisnicki nalog"
+      brandCaption="Kreiraj korisnički nalog"
       eyebrow="Registracija"
       footer={
         <View style={styles.footerBlock}>
           <Text style={styles.footerText}>
-            Vec imas nalog?{" "}
+            Već imaš nalog?{" "}
             <Text onPress={() => navigation.goBack()} style={styles.footerLink}>
               Prijavi se
             </Text>
           </Text>
         </View>
       }
-      subtitle="Unesi osnovne podatke i kreiraj korisnicki nalog."
+      subtitle="Unesi osnovne podatke i kreiraj korisnički nalog."
       title="Registruj se"
     >
       <AppTextField
         autoCapitalize="words"
-        icon="U"
+        icon="user"
         onChangeText={(value) => setValue("name", value)}
         placeholder="Ime i prezime"
         value={form.name}
@@ -185,7 +186,7 @@ export function RegisterScreen({ navigation }: Props) {
       <AppTextField
         autoCapitalize="none"
         autoComplete="email"
-        icon="@"
+        icon="mail"
         keyboardType="email-address"
         onChangeText={(value) => setValue("email", value)}
         placeholder="email@example.com"
@@ -194,7 +195,7 @@ export function RegisterScreen({ navigation }: Props) {
       <AppTextField
         autoCapitalize="none"
         autoComplete="new-password"
-        icon="#"
+        icon="lock"
         onChangeText={(value) => setValue("password", value)}
         placeholder="Lozinka"
         secureTextEntry
@@ -202,7 +203,7 @@ export function RegisterScreen({ navigation }: Props) {
       />
 
       <AuthSelectField
-        icon="F"
+        icon="faculty"
         onChange={(value) => setValue("faculty", value)}
         options={facultySelectOptions}
         placeholder="Izaberi fakultet"
@@ -211,7 +212,7 @@ export function RegisterScreen({ navigation }: Props) {
 
       {isAdministration ? (
         <AuthSelectField
-          icon="A"
+          icon="admin"
           onChange={(value) => setValue("admin_module", value)}
           options={adminOptions}
           placeholder="Izaberi tip administracije"
@@ -221,7 +222,7 @@ export function RegisterScreen({ navigation }: Props) {
 
       {!isAdministration || isDomAdmin ? (
         <AuthSelectField
-          icon="D"
+          icon="dom"
           onChange={(value) => setValue("dorm", value)}
           options={dormSelectOptions}
           placeholder={
@@ -234,7 +235,7 @@ export function RegisterScreen({ navigation }: Props) {
       {!isAdministration ? (
         <AppTextField
           autoCapitalize="characters"
-          icon="I"
+          icon="index"
           onChangeText={(value) => setValue("index_number", value)}
           placeholder="Broj indeksa (npr. 23/23)"
           value={form.index_number}
@@ -245,11 +246,11 @@ export function RegisterScreen({ navigation }: Props) {
         <View style={styles.switchCard}>
           <View style={styles.switchTextBlock}>
             <Text style={styles.switchTitle}>
-              Dozvoljavam pracenje lokacije za dnevnu rezervaciju citaonice
+              Dozvoljavam praćenje lokacije za dnevnu rezervaciju čitaonice
             </Text>
             <Text style={styles.switchText}>
-              Ako ukljucis ovu opciju, mjesto vazi za cijeli radni dan i
-              rezervacija moze biti automatski otkazana ako si dugo van dozvoljenog radijusa.
+              Ako uključiš ovu opciju, mjesto važi za cijeli radni dan i
+              rezervacija može biti automatski otkazana ako si dugo van dozvoljenog radijusa.
             </Text>
           </View>
           <Switch
@@ -262,7 +263,7 @@ export function RegisterScreen({ navigation }: Props) {
       ) : null}
 
       <View style={styles.requiredRow}>
-        <Text style={styles.requiredIcon}>i</Text>
+        <AppIcon name="info" size={15} color="#4DA3FF" />
         <Text style={styles.requiredText}>Obavezno polje</Text>
       </View>
 

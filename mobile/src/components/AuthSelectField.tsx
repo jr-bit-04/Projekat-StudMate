@@ -9,6 +9,7 @@ import {
 } from "react-native";
 
 import { colors } from "../theme/colors";
+import { AppIcon, IconName } from "./AppIcon";
 
 interface Option {
   label: string;
@@ -16,7 +17,7 @@ interface Option {
 }
 
 interface AuthSelectFieldProps {
-  icon: string;
+  icon: IconName;
   onChange: (value: string) => void;
   options: Option[];
   placeholder: string;
@@ -42,14 +43,14 @@ export function AuthSelectField({
           pressed ? styles.fieldPressed : null,
         ]}
       >
-        <Text style={styles.icon}>{icon}</Text>
+        <AppIcon name={icon} size={19} color="#4DA3FF" style={styles.icon} />
         <Text
           numberOfLines={1}
           style={[styles.value, !selected ? styles.placeholder : null]}
         >
           {selected?.label || placeholder}
         </Text>
-        <Text style={styles.indicator}>i</Text>
+        <AppIcon name="chevron-down" size={18} color="#4DA3FF" />
       </Pressable>
 
       <Modal

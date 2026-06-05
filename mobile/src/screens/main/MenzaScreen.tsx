@@ -24,9 +24,9 @@ import {
 } from "../../utils/format";
 
 const meals = [
-  { key: "dorucak", label: "Dorucak", time: "08:00 - 10:00" },
-  { key: "rucak", label: "Rucak", time: "11:00 - 16:00" },
-  { key: "vecera", label: "Vecera", time: "17:00 - 19:00" },
+  { key: "dorucak", label: "Doručak", time: "08:00 - 10:00" },
+  { key: "rucak", label: "Ručak", time: "11:00 - 16:00" },
+  { key: "vecera", label: "Večera", time: "17:00 - 19:00" },
 ] as const;
 
 interface MenzaData {
@@ -67,7 +67,7 @@ export function MenzaScreen() {
         obavjestenja: response.data.obavjestenja || [],
       });
     } catch (error) {
-      setMessage(getApiErrorMessage(error, "Greska pri ucitavanju menze."));
+      setMessage(getApiErrorMessage(error, "Greška pri učitavanju menze."));
     }
   }, [weekStart]);
 
@@ -85,9 +85,9 @@ export function MenzaScreen() {
     <ScreenShell
       eyebrow="Menza"
       highlights={[
-        `${String(data.bonovi?.dorucak ?? 0)} dorucak`,
-        `${String(data.bonovi?.rucak ?? 0)} rucak`,
-        `${String(data.bonovi?.vecera ?? 0)} vecera`,
+        `${String(data.bonovi?.dorucak ?? 0)} doručak`,
+        `${String(data.bonovi?.rucak ?? 0)} ručak`,
+        `${String(data.bonovi?.vecera ?? 0)} večera`,
       ]}
       image={menzaHero}
       onRefresh={() => {
@@ -95,7 +95,7 @@ export function MenzaScreen() {
         loadMenza().finally(() => setRefreshing(false));
       }}
       refreshing={refreshing}
-      subtitle="Meni, bonovi i obavjestenja studentske menze."
+      subtitle="Meni, bonovi i obavještenja studentske menze."
       title="Menza i bonovi"
     >
       {message ? <StatusBanner text={message} tone="danger" /> : null}
@@ -113,7 +113,7 @@ export function MenzaScreen() {
           ))}
         </View>
         <Text style={styles.helperText}>
-          Bonovi isticu 10-og u mjesecu. Poslednje azurirano:{" "}
+          Bonovi ističu 10-og u mjesecu. Posljednje ažurirano:{" "}
           {formatDateTime(data.bonovi?.updated_at, "nije dostupno")}
         </Text>
       </SectionCard>
@@ -122,16 +122,16 @@ export function MenzaScreen() {
         right={
           <Pressable onPress={() => setShowNotices((value) => !value)}>
             <Text style={styles.linkText}>
-              {showNotices ? "Sakrij" : "Prikazi"}
+              {showNotices ? "Sakrij" : "Prikaži"}
             </Text>
           </Pressable>
         }
-        subtitle="Obavjestenja sa menza modula."
-        title="Obavjestenja"
+        subtitle="Obavještenja sa menza modula."
+        title="Obavještenja"
       >
         {showNotices ? (
           data.obavjestenja.length === 0 ? (
-            <Text style={styles.emptyText}>Trenutno nema obavjestenja za menzu.</Text>
+            <Text style={styles.emptyText}>Trenutno nema obavještenja za menzu.</Text>
           ) : (
             data.obavjestenja.map((item) => (
               <View key={item.id} style={styles.noticeCard}>
@@ -148,12 +148,12 @@ export function MenzaScreen() {
           )
         ) : (
           <Text style={styles.emptyText}>
-            Dodirni "Prikazi" da otvoris obavjestenja.
+            Dodirni "Prikaži" da otvoriš obavještenja.
           </Text>
         )}
       </SectionCard>
 
-      <SectionCard subtitle="Izaberi dan u sedmici." title="Sedmicni pregled">
+      <SectionCard subtitle="Izaberi dan u sedmici." title="Sedmični pregled">
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.dayRow}>
             {weekDays.map((day) => {
@@ -211,7 +211,7 @@ export function MenzaScreen() {
         {selectedMeal === "dorucak" ? (
           <View style={styles.foodColumn}>
             {normalizeBreakfastItems(selectedMenu?.dorucak_stavke).length === 0 ? (
-              <Text style={styles.emptyText}>Nema unosa za dorucak.</Text>
+              <Text style={styles.emptyText}>Nema unosa za doručak.</Text>
             ) : (
               normalizeBreakfastItems(selectedMenu?.dorucak_stavke).map(
                 (item, index) => (

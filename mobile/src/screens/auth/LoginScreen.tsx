@@ -32,7 +32,7 @@ export function LoginScreen({ navigation }: Props) {
       footer={
         <View style={styles.footerBlock}>
           <Text style={styles.footerText}>
-            Nemas nalog?{" "}
+            Nemaš nalog?{" "}
             <Text onPress={() => navigation.navigate("Register")} style={styles.footerLink}>
               Registruj se
             </Text>
@@ -45,7 +45,7 @@ export function LoginScreen({ navigation }: Props) {
       <AppTextField
         autoCapitalize="none"
         autoComplete="email"
-        icon="@"
+        icon="mail"
         keyboardType="email-address"
         onChangeText={setEmail}
         placeholder="email@example.com"
@@ -54,7 +54,7 @@ export function LoginScreen({ navigation }: Props) {
       <AppTextField
         autoCapitalize="none"
         autoComplete="password"
-        icon="#"
+        icon="lock"
         onChangeText={setPassword}
         placeholder="Lozinka"
         secureTextEntry

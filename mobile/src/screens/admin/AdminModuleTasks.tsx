@@ -43,9 +43,9 @@ const MONTH_OPTIONS = [
 ] as const;
 
 const MEAL_OPTIONS = [
-  { label: "Dorucak", value: "dorucak" },
-  { label: "Rucak", value: "rucak" },
-  { label: "Vecera", value: "vecera" },
+  { label: "Doručak", value: "dorucak" },
+  { label: "Ručak", value: "rucak" },
+  { label: "Večera", value: "vecera" },
 ] as const;
 
 const RESERVATION_DURATIONS = [
@@ -360,7 +360,7 @@ function MenzaAdminPanel({ onChanged, refreshToken }: PanelProps) {
       });
       setMenus(response.data.meni || []);
     } catch (error) {
-      setMenuMessage(getApiErrorMessage(error, "Greska pri ucitavanju menija."));
+      setMenuMessage(getApiErrorMessage(error, "Greška pri učitavanju menija."));
     } finally {
       setMenuLoading(false);
     }
@@ -408,7 +408,7 @@ function MenzaAdminPanel({ onChanged, refreshToken }: PanelProps) {
       });
     } catch (error) {
       setStudentMessage(
-        getApiErrorMessage(error, "Greska pri ucitavanju studentskih bonova.")
+        getApiErrorMessage(error, "Greška pri učitavanju studentskih bonova.")
       );
     } finally {
       setStudentLoading(false);
@@ -449,7 +449,7 @@ function MenzaAdminPanel({ onChanged, refreshToken }: PanelProps) {
       await loadMenus();
       onChanged?.();
     } catch (error) {
-      setMenuMessage(getApiErrorMessage(error, "Greska pri cuvanju menija."));
+      setMenuMessage(getApiErrorMessage(error, "Greška pri čuvanju menija."));
     } finally {
       setMenuSaving(false);
     }
@@ -457,15 +457,15 @@ function MenzaAdminPanel({ onChanged, refreshToken }: PanelProps) {
 
   function confirmDeleteMenu() {
     if (!activeMenu) {
-      setMenuMessage("Za izabrani obrok jos nema sacuvanog menija.");
+      setMenuMessage("Za izabrani obrok još nema sačuvanog menija.");
       return;
     }
 
-    Alert.alert("Obrisi meni", "Obrisati meni za izabrani obrok?", [
+    Alert.alert("Obriši meni", "Obrisati meni za izabrani obrok?", [
       { style: "cancel", text: "Nazad" },
       {
         style: "destructive",
-        text: "Obrisi",
+        text: "Obriši",
         onPress: () => void deleteMenu(),
       },
     ]);
@@ -485,7 +485,7 @@ function MenzaAdminPanel({ onChanged, refreshToken }: PanelProps) {
       await loadMenus();
       onChanged?.();
     } catch (error) {
-      setMenuMessage(getApiErrorMessage(error, "Greska pri brisanju menija."));
+      setMenuMessage(getApiErrorMessage(error, "Greška pri brisanju menija."));
     } finally {
       setMenuSaving(false);
     }
@@ -506,7 +506,7 @@ function MenzaAdminPanel({ onChanged, refreshToken }: PanelProps) {
         rucak: sanitizeWholeNumber(draft.rucak),
         vecera: sanitizeWholeNumber(draft.vecera),
       });
-      setStudentSuccess(response.data?.message || "Bonovi su sacuvani.");
+      setStudentSuccess(response.data?.message || "Bonovi su sačuvani.");
       setStudents((current) =>
         current.map((student) =>
           student.id === studentId
@@ -521,7 +521,7 @@ function MenzaAdminPanel({ onChanged, refreshToken }: PanelProps) {
       );
       onChanged?.();
     } catch (error) {
-      setStudentMessage(getApiErrorMessage(error, "Greska pri cuvanju bonova."));
+      setStudentMessage(getApiErrorMessage(error, "Greška pri čuvanju bonova."));
     } finally {
       setStudentSavingId(null);
     }
@@ -560,7 +560,7 @@ function MenzaAdminPanel({ onChanged, refreshToken }: PanelProps) {
             return (
               <View key={item.value} style={styles.stateChip}>
                 <Text style={styles.stateChipTitle}>{item.label}</Text>
-                <Text style={styles.stateChipText}>{exists ? "Sacuvano" : "Prazno"}</Text>
+                <Text style={styles.stateChipText}>{exists ? "Sačuvano" : "Prazno"}</Text>
               </View>
             );
           })}
@@ -568,12 +568,12 @@ function MenzaAdminPanel({ onChanged, refreshToken }: PanelProps) {
 
         {activeMenu ? (
           <StatusBanner
-            text={`Uredjujes sacuvani meni za ${mealLabel(activeMenu.tip_obroka)}.`}
+            text={`Uređuješ sačuvani meni za ${mealLabel(activeMenu.tip_obroka)}.`}
             tone="info"
           />
         ) : (
           <StatusBanner
-            text={`Za ${mealLabel(tipObroka)} jos nema unesenog menija. Sacuvaj novi unos.`}
+            text={`Za ${mealLabel(tipObroka)} još nema unesenog menija. Sačuvaj novi unos.`}
           />
         )}
 
@@ -592,39 +592,39 @@ function MenzaAdminPanel({ onChanged, refreshToken }: PanelProps) {
         <AdminTextArea
           label="Prilozi"
           onChangeText={(value) => setMenuForm((current) => ({ ...current, prilozi: value }))}
-          placeholder="Pomfrit, pirinac, hljeb..."
+          placeholder="Pomfrit, pirinač, hljeb..."
           value={menuForm.prilozi}
         />
         <AdminTextArea
           label="Salate"
           onChangeText={(value) => setMenuForm((current) => ({ ...current, salate: value }))}
-          placeholder="Kupus, mijesana..."
+          placeholder="Kupus, miješana..."
           value={menuForm.salate}
         />
         <AdminTextArea
           label="Dodatno"
           onChangeText={(value) => setMenuForm((current) => ({ ...current, dodatno: value }))}
-          placeholder="Supa, kolac, voce..."
+          placeholder="Supa, kolač, voće..."
           value={menuForm.dodatno}
         />
 
         <ToggleRow
-          description="Ako je iskljuceno, meni ostaje sacuvan ali nije aktivan."
+          description="Ako je isključeno, meni ostaje sačuvan ali nije aktivan."
           label="Aktivan meni"
           onValueChange={(value) => setMenuForm((current) => ({ ...current, aktivan: value }))}
           value={menuForm.aktivan}
         />
 
-        {menuLoading ? <LoadingState text="Ucitavanje menija..." /> : null}
+        {menuLoading ? <LoadingState text="Učitavanje menija..." /> : null}
 
         <View style={styles.buttonColumn}>
           <AppButton
-            label={menuSaving ? "Cuvanje..." : activeMenu ? "Sacuvaj izmjene" : "Dodaj meni"}
+            label={menuSaving ? "Čuvanje..." : activeMenu ? "Sačuvaj izmjene" : "Dodaj meni"}
             loading={menuSaving}
             onPress={() => void saveMenu()}
           />
           <AppButton
-            label="Obrisi obrok"
+            label="Obriši obrok"
             onPress={confirmDeleteMenu}
             variant="secondary"
           />
@@ -648,7 +648,7 @@ function MenzaAdminPanel({ onChanged, refreshToken }: PanelProps) {
 
         <View style={styles.buttonColumn}>
           <AppButton
-            label={studentLoading ? "Pretraga..." : "Pretrazi studente"}
+            label={studentLoading ? "Pretraga..." : "Pretraži studente"}
             loading={studentLoading}
             onPress={() => void searchStudents()}
           />
@@ -656,7 +656,7 @@ function MenzaAdminPanel({ onChanged, refreshToken }: PanelProps) {
 
         {students.length === 0 ? (
           <Text style={styles.emptyText}>
-            Pokreni pretragu da otvoris spisak studenata i njihove bonove.
+            Pokreni pretragu da otvoriš spisak studenata i njihove bonove.
           </Text>
         ) : (
           students.map((student) => {
@@ -689,7 +689,7 @@ function MenzaAdminPanel({ onChanged, refreshToken }: PanelProps) {
                   <AdminField
                     compact
                     keyboardType="numeric"
-                    label="Dorucak"
+                    label="Doručak"
                     onChangeText={(value) =>
                       setStudentDrafts((current) => ({
                         ...current,
@@ -701,7 +701,7 @@ function MenzaAdminPanel({ onChanged, refreshToken }: PanelProps) {
                   <AdminField
                     compact
                     keyboardType="numeric"
-                    label="Rucak"
+                    label="Ručak"
                     onChangeText={(value) =>
                       setStudentDrafts((current) => ({
                         ...current,
@@ -713,7 +713,7 @@ function MenzaAdminPanel({ onChanged, refreshToken }: PanelProps) {
                   <AdminField
                     compact
                     keyboardType="numeric"
-                    label="Vecera"
+                    label="Večera"
                     onChangeText={(value) =>
                       setStudentDrafts((current) => ({
                         ...current,
@@ -725,7 +725,7 @@ function MenzaAdminPanel({ onChanged, refreshToken }: PanelProps) {
                 </View>
 
                 <AppButton
-                  label={studentSavingId === student.id ? "Cuvanje..." : "Sacuvaj bonove"}
+                  label={studentSavingId === student.id ? "Čuvanje..." : "Sačuvaj bonove"}
                   loading={studentSavingId === student.id}
                   onPress={() => void saveBonovi(student.id)}
                 />
@@ -767,7 +767,7 @@ function DomAdminPanel({ onChanged, refreshToken }: PanelProps) {
       });
       setStudents(response.data.students || []);
     } catch (error) {
-      setMessage(getApiErrorMessage(error, "Greska pri ucitavanju studenata doma."));
+      setMessage(getApiErrorMessage(error, "Greška pri učitavanju studenata doma."));
     } finally {
       setStudentLoading(false);
     }
@@ -784,7 +784,7 @@ function DomAdminPanel({ onChanged, refreshToken }: PanelProps) {
       setSelectedStudent(response.data.student || null);
       setObligations(response.data.obligations || []);
     } catch (error) {
-      setMessage(getApiErrorMessage(error, "Greska pri ucitavanju obaveza studenta."));
+      setMessage(getApiErrorMessage(error, "Greška pri učitavanju obaveza studenta."));
     } finally {
       setObligationLoading(false);
     }
@@ -819,11 +819,11 @@ function DomAdminPanel({ onChanged, refreshToken }: PanelProps) {
         paid_at: form.paid_at || null,
         boravi_u_domu: form.boravi_u_domu,
       });
-      setSuccess(response.data?.message || "Obaveza je sacuvana.");
+      setSuccess(response.data?.message || "Obaveza je sačuvana.");
       await loadObligations(selectedStudent.id);
       onChanged?.();
     } catch (error) {
-      setMessage(getApiErrorMessage(error, "Greska pri cuvanju obaveze."));
+      setMessage(getApiErrorMessage(error, "Greška pri čuvanju obaveze."));
     } finally {
       setObligationSaving(false);
     }
@@ -843,11 +843,11 @@ function DomAdminPanel({ onChanged, refreshToken }: PanelProps) {
   }
 
   function confirmDeleteObligation(id: number) {
-    Alert.alert("Obrisi obavezu", "Obrisati izabranu obavezu studenta?", [
+    Alert.alert("Obriši obavezu", "Obrisati izabranu obavezu studenta?", [
       { style: "cancel", text: "Nazad" },
       {
         style: "destructive",
-        text: "Obrisi",
+        text: "Obriši",
         onPress: () => void deleteObligation(id),
       },
     ]);
@@ -867,7 +867,7 @@ function DomAdminPanel({ onChanged, refreshToken }: PanelProps) {
       await loadObligations(selectedStudent.id);
       onChanged?.();
     } catch (error) {
-      setMessage(getApiErrorMessage(error, "Greska pri brisanju obaveze."));
+      setMessage(getApiErrorMessage(error, "Greška pri brisanju obaveze."));
     } finally {
       setDeletingId(null);
     }
@@ -891,14 +891,14 @@ function DomAdminPanel({ onChanged, refreshToken }: PanelProps) {
         />
 
         <AppButton
-          label={studentLoading ? "Pretraga..." : "Pretrazi studente"}
+          label={studentLoading ? "Pretraga..." : "Pretraži studente"}
           loading={studentLoading}
           onPress={() => void searchStudents()}
         />
 
         {students.length === 0 ? (
           <Text style={styles.emptyText}>
-            Pokreni pretragu da otvoris studente i njihove mjesecne obaveze.
+            Pokreni pretragu da otvoriš studente i njihove mjesečne obaveze.
           </Text>
         ) : (
           students.map((student) => (
@@ -938,12 +938,12 @@ function DomAdminPanel({ onChanged, refreshToken }: PanelProps) {
             <InfoBadge value={selectedStudent.index_number || "Student"} />
           ) : undefined
         }
-        subtitle="Dodavanje i izmjena mjesecnih obaveza izabranog studenta."
+        subtitle="Dodavanje i izmjena mjesečnih obaveza izabranog studenta."
         title="Obaveze"
       >
         {!selectedStudent ? (
           <Text style={styles.emptyText}>
-            Izaberi studenta iz spiska iznad da otvoris obaveze doma.
+            Izaberi studenta iz spiska iznad da otvoriš obaveze doma.
           </Text>
         ) : (
           <>
@@ -993,7 +993,7 @@ function DomAdminPanel({ onChanged, refreshToken }: PanelProps) {
               <AdminField
                 compact
                 keyboardType="numeric"
-                label="Uplaceno"
+                label="Uplaćeno"
                 onChangeText={(value) =>
                   setForm((current) => ({ ...current, uplaceno: value }))
                 }
@@ -1005,7 +1005,7 @@ function DomAdminPanel({ onChanged, refreshToken }: PanelProps) {
             <View style={styles.fieldGrid}>
               <AdminField
                 compact
-                label="Rok placanja"
+                label="Rok plaćanja"
                 onChangeText={(value) =>
                   setForm((current) => ({ ...current, due_date: value }))
                 }
@@ -1024,7 +1024,7 @@ function DomAdminPanel({ onChanged, refreshToken }: PanelProps) {
             </View>
 
             <ToggleRow
-              description="Ako je iskljuceno, obaveza ide u neaktivno stanje."
+              description="Ako je isključeno, obaveza ide u neaktivno stanje."
               label="Student boravi u domu"
               onValueChange={(value) =>
                 setForm((current) => ({ ...current, boravi_u_domu: value }))
@@ -1034,18 +1034,18 @@ function DomAdminPanel({ onChanged, refreshToken }: PanelProps) {
 
             <View style={styles.buttonColumn}>
               <AppButton
-                label={obligationSaving ? "Cuvanje..." : "Sacuvaj obavezu"}
+                label={obligationSaving ? "Čuvanje..." : "Sačuvaj obavezu"}
                 loading={obligationSaving}
                 onPress={() => void saveObligation()}
               />
               <AppButton
-                label="Ocisti formu"
+                label="Očisti formu"
                 onPress={() => setForm(getDefaultObligationForm())}
                 variant="secondary"
               />
             </View>
 
-            {obligationLoading ? <LoadingState text="Ucitavanje obaveza..." /> : null}
+            {obligationLoading ? <LoadingState text="Učitavanje obaveza..." /> : null}
 
             {obligations.length === 0 ? (
               <Text style={styles.emptyText}>Student jos nema evidentiranih obaveza.</Text>
@@ -1074,7 +1074,7 @@ function DomAdminPanel({ onChanged, refreshToken }: PanelProps) {
                     <SmallActionButton
                       danger
                       disabled={deletingId === item.id}
-                      label={deletingId === item.id ? "Brisanje..." : "Obrisi"}
+                      label={deletingId === item.id ? "Brisanje..." : "Obriši"}
                       onPress={() => confirmDeleteObligation(item.id)}
                     />
                   </View>
@@ -1127,7 +1127,7 @@ function CitaonaAdminPanel({ onChanged, refreshToken }: PanelProps) {
       setReservations(response.data.rezervacije || []);
     } catch (error) {
       setMessage(
-        getApiErrorMessage(error, "Greska pri ucitavanju rezervacija citaonice.")
+        getApiErrorMessage(error, "Greška pri učitavanju rezervacija čitaonice.")
       );
     } finally {
       setLoadingReservations(false);
@@ -1152,7 +1152,7 @@ function CitaonaAdminPanel({ onChanged, refreshToken }: PanelProps) {
       setRadi(response.data.radi !== false);
       setSelectedSeatId(null);
     } catch (error) {
-      setMessage(getApiErrorMessage(error, "Greska pri ucitavanju mjesta."));
+      setMessage(getApiErrorMessage(error, "Greška pri učitavanju mjesta."));
     } finally {
       setLoadingSeats(false);
     }
@@ -1176,12 +1176,12 @@ function CitaonaAdminPanel({ onChanged, refreshToken }: PanelProps) {
       const response = await api.post("/citaona/admin/potvrdi", {
         kod: kod.trim().toUpperCase(),
       });
-      setSuccess(response.data?.message || "Rezervacija je potvrdjena.");
+      setSuccess(response.data?.message || "Rezervacija je potvrđena.");
       setKod("");
       await loadReservations();
       onChanged?.();
     } catch (error) {
-      setMessage(getApiErrorMessage(error, "Greska pri potvrdi rezervacije."));
+      setMessage(getApiErrorMessage(error, "Greška pri potvrdi rezervacije."));
     } finally {
       setConfirming(false);
     }
@@ -1210,7 +1210,7 @@ function CitaonaAdminPanel({ onChanged, refreshToken }: PanelProps) {
       onChanged?.();
     } catch (error) {
       setMessage(
-        getApiErrorMessage(error, "Greska pri kreiranju admin rezervacije.")
+        getApiErrorMessage(error, "Greška pri kreiranju admin rezervacije.")
       );
     } finally {
       setSavingReservation(false);
@@ -1235,7 +1235,7 @@ function CitaonaAdminPanel({ onChanged, refreshToken }: PanelProps) {
         />
 
         <AppButton
-          label={confirming ? "Potvrdjujem..." : "Potvrdi dolazak"}
+          label={confirming ? "Potvrđujem..." : "Potvrdi dolazak"}
           loading={confirming}
           onPress={() => void confirmCode()}
         />
@@ -1260,7 +1260,7 @@ function CitaonaAdminPanel({ onChanged, refreshToken }: PanelProps) {
           />
           <AdminField
             compact
-            label="Pocetak"
+            label="Početak"
             onChangeText={setVrijemeOd}
             placeholder="07:00"
             value={vrijemeOd}
@@ -1286,14 +1286,14 @@ function CitaonaAdminPanel({ onChanged, refreshToken }: PanelProps) {
 
         {!radi ? (
           <StatusBanner
-            text="Citaonica ne radi u izabranom terminu."
+            text="Čitaonica ne radi u izabranom terminu."
             tone="warning"
           />
         ) : null}
 
         <View style={styles.buttonColumn}>
           <AppButton
-            label={loadingSeats ? "Ucitavanje mjesta..." : "Osvjezi mjesta"}
+            label={loadingSeats ? "Učitavanje mjesta..." : "Osvježi mjesta"}
             loading={loadingSeats}
             onPress={() => void loadSeats()}
             variant="secondary"
@@ -1338,7 +1338,7 @@ function CitaonaAdminPanel({ onChanged, refreshToken }: PanelProps) {
         </View>
 
         <AppButton
-          label={savingReservation ? "Cuvanje..." : "Zauzmi mjesto"}
+          label={savingReservation ? "Čuvanje..." : "Zauzmi mjesto"}
           loading={savingReservation}
           onPress={() => void createAdminReservation()}
         />
@@ -1346,10 +1346,10 @@ function CitaonaAdminPanel({ onChanged, refreshToken }: PanelProps) {
 
       <SectionCard
         right={<InfoBadge value={`${reservations.length}`} />}
-        subtitle="Aktivne, cekajuce, otkazane i zavrsene rezervacije."
+        subtitle="Aktivne, čekajuće, otkazane i završene rezervacije."
         title="Sve rezervacije"
       >
-        {loadingReservations ? <LoadingState text="Ucitavanje rezervacija..." /> : null}
+        {loadingReservations ? <LoadingState text="Učitavanje rezervacija..." /> : null}
         {reservations.length === 0 ? (
           <Text style={styles.emptyText}>Trenutno nema rezervacija za prikaz.</Text>
         ) : (
@@ -1420,7 +1420,7 @@ function PopustiAdminPanel({ onChanged, refreshToken }: PanelProps) {
       setDiscounts(discountResponse.data.popusti || []);
       setPartners(partnerResponse.data.partneri || []);
     } catch (error) {
-      setMessage(getApiErrorMessage(error, "Greska pri ucitavanju popusta."));
+      setMessage(getApiErrorMessage(error, "Greška pri učitavanju popusta."));
     } finally {
       setLoading(false);
     }
@@ -1444,7 +1444,7 @@ function PopustiAdminPanel({ onChanged, refreshToken }: PanelProps) {
       onChanged?.();
     } catch (error) {
       setMessage(
-        getApiErrorMessage(error, "Greska pri izmjeni statusa promocije.")
+        getApiErrorMessage(error, "Greška pri izmjeni statusa promocije.")
       );
     } finally {
       setSavingId(null);
@@ -1472,7 +1472,7 @@ function PopustiAdminPanel({ onChanged, refreshToken }: PanelProps) {
       await loadData();
       onChanged?.();
     } catch (error) {
-      setMessage(getApiErrorMessage(error, "Greska pri dodavanju API partnera."));
+      setMessage(getApiErrorMessage(error, "Greška pri dodavanju API partnera."));
     } finally {
       setPartnerSaving(false);
     }
@@ -1487,7 +1487,7 @@ function PopustiAdminPanel({ onChanged, refreshToken }: PanelProps) {
       >
         {message ? <StatusBanner text={message} tone="danger" /> : null}
         {success ? <StatusBanner text={success} tone="success" /> : null}
-        {loading ? <LoadingState text="Ucitavanje promocija..." /> : null}
+        {loading ? <LoadingState text="Učitavanje promocija..." /> : null}
 
         {discounts.length === 0 ? (
           <Text style={styles.emptyText}>Trenutno nema promocija na moderaciji.</Text>
@@ -1509,7 +1509,7 @@ function PopustiAdminPanel({ onChanged, refreshToken }: PanelProps) {
                 Vrijednost: {discount.vrijednost || "-"} • Kod: {discount.kod || "-"}
               </Text>
               <Text style={styles.recordSubtle}>
-                Vazi do: {formatDate(discount.valid_until)} • Lokacija:{" "}
+                Važi do: {formatDate(discount.valid_until)} • Lokacija:{" "}
                 {discount.lokacija || "-"}
               </Text>
 
@@ -1533,7 +1533,7 @@ function PopustiAdminPanel({ onChanged, refreshToken }: PanelProps) {
 
       <SectionCard
         right={<InfoBadge value={`${partners.length}`} />}
-        subtitle="Dodavanje i pregled API partnera koji salju promocije."
+        subtitle="Dodavanje i pregled API partnera koji šalju promocije."
         title="API partneri"
       >
         <AdminField
@@ -1567,12 +1567,12 @@ function PopustiAdminPanel({ onChanged, refreshToken }: PanelProps) {
 
         <View style={styles.buttonColumn}>
           <AppButton
-            label={partnerSaving ? "Cuvanje..." : "Dodaj API partnera"}
+            label={partnerSaving ? "Čuvanje..." : "Dodaj API partnera"}
             loading={partnerSaving}
             onPress={() => void createPartner()}
           />
           <AppButton
-            label={loading ? "Osvjezavanje..." : "Osvjezi partnere"}
+            label={loading ? "Osvježavanje..." : "Osvježi partnere"}
             loading={loading}
             onPress={() => void loadData()}
             variant="secondary"
@@ -1623,7 +1623,7 @@ function StipendijeAdminPanel({ onChanged, refreshToken }: PanelProps) {
       const response = await api.get<{ konkursi: ScholarshipRecord[] }>("/stipendije/admin");
       setItems(response.data.konkursi || []);
     } catch (error) {
-      setMessage(getApiErrorMessage(error, "Greska pri ucitavanju konkursa."));
+      setMessage(getApiErrorMessage(error, "Greška pri učitavanju konkursa."));
     } finally {
       setLoading(false);
     }
@@ -1676,18 +1676,18 @@ function StipendijeAdminPanel({ onChanged, refreshToken }: PanelProps) {
       await loadItems();
       onChanged?.();
     } catch (error) {
-      setMessage(getApiErrorMessage(error, "Greska pri cuvanju konkursa."));
+      setMessage(getApiErrorMessage(error, "Greška pri čuvanju konkursa."));
     } finally {
       setSaving(false);
     }
   }
 
   function confirmDelete(id: number) {
-    Alert.alert("Obrisi konkurs", "Obrisati izabrani konkurs?", [
+    Alert.alert("Obriši konkurs", "Obrisati izabrani konkurs?", [
       { style: "cancel", text: "Nazad" },
       {
         style: "destructive",
-        text: "Obrisi",
+        text: "Obriši",
         onPress: () => void deleteItem(id),
       },
     ]);
@@ -1707,7 +1707,7 @@ function StipendijeAdminPanel({ onChanged, refreshToken }: PanelProps) {
       await loadItems();
       onChanged?.();
     } catch (error) {
-      setMessage(getApiErrorMessage(error, "Greska pri brisanju konkursa."));
+      setMessage(getApiErrorMessage(error, "Greška pri brisanju konkursa."));
     } finally {
       setDeletingId(null);
     }
@@ -1790,12 +1790,12 @@ function StipendijeAdminPanel({ onChanged, refreshToken }: PanelProps) {
 
         <View style={styles.buttonColumn}>
           <AppButton
-            label={saving ? "Cuvanje..." : editingId ? "Sacuvaj izmjene" : "Dodaj konkurs"}
+            label={saving ? "Čuvanje..." : editingId ? "Sačuvaj izmjene" : "Dodaj konkurs"}
             loading={saving}
             onPress={() => void saveItem()}
           />
           <AppButton
-            label="Ocisti formu"
+            label="Očisti formu"
             onPress={() => {
               setEditingId(null);
               setForm(getDefaultScholarshipForm());
@@ -1810,7 +1810,7 @@ function StipendijeAdminPanel({ onChanged, refreshToken }: PanelProps) {
         subtitle="Pregled svih unesenih konkursa."
         title="Svi konkursi"
       >
-        {loading ? <LoadingState text="Ucitavanje konkursa..." /> : null}
+        {loading ? <LoadingState text="Učitavanje konkursa..." /> : null}
         {items.length === 0 ? (
           <Text style={styles.emptyText}>Trenutno nema evidentiranih konkursa.</Text>
         ) : (
@@ -1840,7 +1840,7 @@ function StipendijeAdminPanel({ onChanged, refreshToken }: PanelProps) {
                 <SmallActionButton
                   danger
                   disabled={deletingId === item.id}
-                  label={deletingId === item.id ? "Brisanje..." : "Obrisi"}
+                  label={deletingId === item.id ? "Brisanje..." : "Obriši"}
                   onPress={() => confirmDelete(item.id)}
                 />
               </View>
@@ -1881,7 +1881,7 @@ function NoticeManager({
       const response = await api.get<{ obavjestenja: NoticeRecord[] }>(basePath);
       setItems(response.data.obavjestenja || []);
     } catch (error) {
-      setMessage(getApiErrorMessage(error, "Greska pri ucitavanju obavjestenja."));
+      setMessage(getApiErrorMessage(error, "Greška pri učitavanju obavještenja."));
     } finally {
       setLoading(false);
     }
@@ -1925,10 +1925,10 @@ function NoticeManager({
 
       if (editingId) {
         const response = await api.put(`${basePath}/${editingId}`, payload);
-        setSuccess(response.data?.message || "Obavjestenje je izmijenjeno.");
+        setSuccess(response.data?.message || "Obavještenje je izmijenjeno.");
       } else {
         const response = await api.post(basePath, payload);
-        setSuccess(response.data?.message || "Obavjestenje je dodato.");
+        setSuccess(response.data?.message || "Obavještenje je dodato.");
       }
 
       setEditingId(null);
@@ -1936,18 +1936,18 @@ function NoticeManager({
       await loadItems();
       onChanged?.();
     } catch (error) {
-      setMessage(getApiErrorMessage(error, "Greska pri cuvanju obavjestenja."));
+      setMessage(getApiErrorMessage(error, "Greška pri čuvanju obavještenja."));
     } finally {
       setSaving(false);
     }
   }
 
   function confirmDelete(id: number) {
-    Alert.alert("Obrisi obavjestenje", "Obrisati izabrano obavjestenje?", [
+    Alert.alert("Obriši obavještenje", "Obrisati izabrano obavještenje?", [
       { style: "cancel", text: "Nazad" },
       {
         style: "destructive",
-        text: "Obrisi",
+        text: "Obriši",
         onPress: () => void deleteNotice(id),
       },
     ]);
@@ -1959,7 +1959,7 @@ function NoticeManager({
       setMessage("");
       setSuccess("");
       const response = await api.delete(`${basePath}/${id}`);
-      setSuccess(response.data?.message || "Obavjestenje je obrisano.");
+      setSuccess(response.data?.message || "Obavještenje je obrisano.");
       if (editingId === id) {
         setEditingId(null);
         setForm(getDefaultNoticeForm(moduleLabel));
@@ -1967,7 +1967,7 @@ function NoticeManager({
       await loadItems();
       onChanged?.();
     } catch (error) {
-      setMessage(getApiErrorMessage(error, "Greska pri brisanju obavjestenja."));
+      setMessage(getApiErrorMessage(error, "Greška pri brisanju obavještenja."));
     } finally {
       setDeletingId(null);
     }
@@ -1976,8 +1976,8 @@ function NoticeManager({
   return (
     <SectionCard
       right={<InfoBadge value={`${items.length}`} />}
-      subtitle={`Objava i uredjivanje obavjestenja za sektor ${moduleLabel.toLowerCase()}.`}
-      title="Obavjestenja"
+      subtitle={`Objava i uređivanje obavještenja za sektor ${moduleLabel.toLowerCase()}.`}
+      title="Obavještenja"
     >
       {message ? <StatusBanner text={message} tone="danger" /> : null}
       {success ? <StatusBanner text={success} tone="success" /> : null}
@@ -1985,7 +1985,7 @@ function NoticeManager({
       <AdminField
         label="Naslov"
         onChangeText={(value) => setForm((current) => ({ ...current, naslov: value }))}
-        placeholder="Naslov obavjestenja"
+        placeholder="Naslov obavještenja"
         value={form.naslov}
       />
       <AdminField
@@ -2006,11 +2006,11 @@ function NoticeManager({
       <AdminTextArea
         label="Opis"
         onChangeText={(value) => setForm((current) => ({ ...current, opis: value }))}
-        placeholder="Tekst obavjestenja"
+        placeholder="Tekst obavještenja"
         value={form.opis}
       />
       <ToggleRow
-        description="Pinovano obavjestenje se izdvoji na vrhu liste."
+        description="Pinovano obavještenje se izdvoji na vrhu liste."
         label="Pinovano"
         onValueChange={(value) => setForm((current) => ({ ...current, pinned: value }))}
         value={form.pinned}
@@ -2018,12 +2018,12 @@ function NoticeManager({
 
       <View style={styles.buttonColumn}>
         <AppButton
-          label={saving ? "Cuvanje..." : editingId ? "Sacuvaj izmjene" : "Dodaj obavjestenje"}
+          label={saving ? "Čuvanje..." : editingId ? "Sačuvaj izmjene" : "Dodaj obavještenje"}
           loading={saving}
           onPress={() => void saveNotice()}
         />
         <AppButton
-          label="Ocisti formu"
+          label="Očisti formu"
           onPress={() => {
             setEditingId(null);
             setForm(getDefaultNoticeForm(moduleLabel));
@@ -2032,10 +2032,10 @@ function NoticeManager({
         />
       </View>
 
-      {loading ? <LoadingState text="Ucitavanje obavjestenja..." /> : null}
+      {loading ? <LoadingState text="Učitavanje obavještenja..." /> : null}
 
       {items.length === 0 ? (
-        <Text style={styles.emptyText}>Jos nema dodatih obavjestenja.</Text>
+        <Text style={styles.emptyText}>Još nema dodatih obavještenja.</Text>
       ) : (
         items.map((item) => (
           <View key={item.id} style={styles.recordCard}>
@@ -2060,7 +2060,7 @@ function NoticeManager({
               <SmallActionButton
                 danger
                 disabled={deletingId === item.id}
-                label={deletingId === item.id ? "Brisanje..." : "Obrisi"}
+                label={deletingId === item.id ? "Brisanje..." : "Obriši"}
                 onPress={() => confirmDelete(item.id)}
               />
             </View>
@@ -2242,8 +2242,8 @@ function sanitizeDecimal(value: string) {
 }
 
 function obligationStatusLabel(status?: string | null) {
-  if (status === "paid") return "Placeno";
-  if (status === "unpaid") return "Neplaceno";
+  if (status === "paid") return "Plaćeno";
+  if (status === "unpaid") return "Neplaćeno";
   if (status === "inactive") return "Neaktivan";
   return status || "-";
 }

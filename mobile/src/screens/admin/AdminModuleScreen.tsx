@@ -60,7 +60,7 @@ export function AdminModuleScreen({ navigation, route }: Props) {
       setMessage(
         getApiErrorMessage(
           error,
-          "Greska pri ucitavanju administrativnog pregleda."
+          "Greška pri učitavanju administrativnog pregleda."
         )
       );
     }
@@ -117,7 +117,7 @@ export function AdminModuleScreen({ navigation, route }: Props) {
       {summary.note ? <StatusBanner text={summary.note} /> : null}
 
       <SectionCard
-        subtitle="Brzi pregled trenutno najvaznijih stvari u ovom sektoru."
+        subtitle="Brzi pregled trenutno najvažnijih stvari u ovom sektoru."
         title="Pregled"
       >
         <View style={styles.summaryGrid}>
@@ -131,7 +131,7 @@ export function AdminModuleScreen({ navigation, route }: Props) {
       </SectionCard>
 
       <SectionCard
-        subtitle="Najvazniji zadaci koje ovaj administrativni sektor pokriva."
+        subtitle="Najvažniji zadaci koje ovaj administrativni sektor pokriva."
       title="Zadaci"
       >
         {meta.tasks.map((task) => (
@@ -150,7 +150,7 @@ export function AdminModuleScreen({ navigation, route }: Props) {
 
       {alternativeModules.length > 0 ? (
         <SectionCard
-          subtitle="Globalni admin moze odmah preci i na druge sektore."
+          subtitle="Globalni admin može odmah preći i na druge sektore."
           title="Ostali sektori"
         >
           <View style={styles.switchGrid}>
@@ -240,7 +240,7 @@ async function getModuleSummary(
       note:
         menuIsComplete
           ? "Meni je dodat za sve obroke koji se danas služe."
-          : "Za danas jos nijesu uneseni svi obroci.",
+          : "Za danas još nijesu uneseni svi obroci.",
     };
   }
 
@@ -261,13 +261,13 @@ async function getModuleSummary(
     return {
       cards: [
         { label: "Aktivne", value: String(active) },
-        { label: "Ceka potvrdu", value: String(pending) },
+        { label: "Čeka potvrdu", value: String(pending) },
         { label: "Sa lokacijom", value: String(tracked) },
       ],
       note:
         active > 0
-          ? `Trenutno je aktivno ${active} rezervacija u citaonici.`
-          : "Trenutno nema aktivnih rezervacija u citaonici.",
+          ? `Trenutno je aktivno ${active} rezervacija u čitaonici.`
+          : "Trenutno nema aktivnih rezervacija u čitaonici.",
     };
   }
 
@@ -284,14 +284,14 @@ async function getModuleSummary(
 
     return {
       cards: [
-        { label: "Na cekanju", value: String(pending) },
+        { label: "Na čekanju", value: String(pending) },
         { label: "Odobreno", value: String(approved) },
         { label: "Odbijeno", value: String(rejected) },
       ],
       note:
         pending > 0
-          ? `Trenutno ceka moderaciju ${pending} promocija.`
-          : "Trenutno nema promocija koje cekaju moderaciju.",
+          ? `Trenutno čeka moderaciju ${pending} promocija.`
+          : "Trenutno nema promocija koje čekaju moderaciju.",
     };
   }
 
@@ -328,7 +328,7 @@ async function getModuleSummary(
     ],
     note: user?.dorm
       ? `Ovaj nalog vodi evidenciju za ${user.dorm}.`
-      : "Ovaj sektor pokriva studente, obaveze i obavjestenja doma.",
+      : "Ovaj sektor pokriva studente, obaveze i obavještenja doma.",
   };
 }
 
@@ -341,9 +341,9 @@ function getFallbackSummary(
       cards: [
         { label: "Datum", value: formatDate(getTodayISO()) },
         { label: "Meni", value: "Provjera" },
-        { label: "Obavjestenja", value: "U toku" },
+        { label: "Obavještenja", value: "U toku" },
       ],
-      note: "Pregled menze je spreman za osvjezavanje podataka.",
+      note: "Pregled menze je spreman za osvježavanje podataka.",
     };
   }
 
@@ -354,7 +354,7 @@ function getFallbackSummary(
         { label: "Kodovi", value: "Potvrda" },
         { label: "Mjesta", value: "Kontrola" },
       ],
-      note: "Pregled citaonice je spreman za administrativni rad.",
+      note: "Pregled čitaonice je spreman za administrativni rad.",
     };
   }
 
@@ -365,7 +365,7 @@ function getFallbackSummary(
         { label: "Statusi", value: "Pregled" },
         { label: "Partneri", value: "Kontrola" },
       ],
-      note: "Ovdje pratis i odobravas partnerske promocije.",
+      note: "Ovdje pratiš i odobravaš partnerske promocije.",
     };
   }
 
@@ -373,10 +373,10 @@ function getFallbackSummary(
     return {
       cards: [
         { label: "Konkursi", value: "Pregled" },
-        { label: "Rokovi", value: "Azuriranje" },
+        { label: "Rokovi", value: "Ažuriranje" },
         { label: "Objave", value: "Kontrola" },
       ],
-      note: "Ovdje uredjujes konkurse za stipendije i kredite.",
+      note: "Ovdje uređuješ konkurse za stipendije i kredite.",
     };
   }
 
@@ -386,7 +386,7 @@ function getFallbackSummary(
       { label: "Studenti", value: "Pretraga" },
       { label: "Obaveze", value: "Evidencija" },
     ],
-    note: "Ovdje upravljas studentima doma, obavezama i obavjestenjima.",
+    note: "Ovdje upravljaš studentima doma, obavezama i obavještenjima.",
   };
 }
 

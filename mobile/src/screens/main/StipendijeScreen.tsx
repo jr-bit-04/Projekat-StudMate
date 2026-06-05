@@ -33,7 +33,7 @@ export function StipendijeScreen() {
       setItems(response.data.konkursi || []);
     } catch (error) {
       setMessage(
-        getApiErrorMessage(error, "Greska pri ucitavanju stipendija.")
+        getApiErrorMessage(error, "Greška pri učitavanju stipendija.")
       );
     }
   }, []);
@@ -81,7 +81,7 @@ export function StipendijeScreen() {
     >
       {message ? <StatusBanner text={message} tone="danger" /> : null}
 
-      <SectionCard subtitle="Pretrazi konkurse po vrsti i kljucnim rijecima." title="Filter">
+      <SectionCard subtitle="Pretraži konkurse po vrsti i ključnim riječima." title="Filter">
         <TextInput
           onChangeText={setSearch}
           placeholder="Pretraga konkursa..."
