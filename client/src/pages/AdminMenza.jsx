@@ -11,7 +11,7 @@ const meals = [
 ];
 
 function AdminMenza() {
-  const [datum, setDatum] = useState(new Date().toISOString().slice(0, 10));
+  const [datum, setDatum] = useState(getTodayISO());
   const [selectedMeal, setSelectedMeal] = useState("dorucak");
   const [menus, setMenus] = useState([]);
   const [currentMenuId, setCurrentMenuId] = useState(null);
@@ -28,25 +28,11 @@ function AdminMenza() {
     dodatno: [""],
   });
 
-  useEffect(() => {
-    fetchMenus();
-  }, [datum]);
+  const allowedMeals = getAllowedMealsForDate(datum);
+  const mutationBlockReason = getMutationBlockReason(datum, selectedMeal);
 
-  useEffect(() => {
-    loadSelectedMeal();
-  }, [menus, selectedMeal]);
-
-  const fetchMenus = async () => {
-    try {
-      const res = await api.get(`/menza/admin/meni?datum=${datum}`);
-      setMenus(res.data.meni || []);
-    } catch (error) {
-      setMessage(error.response?.data?.message || "Greška pri učitavanju menija.");
-    }
-  };
-
-  const loadSelectedMeal = () => {
-    const existing = menus.find((item) => item.tip_obroka === selectedMeal);
+  const loadSelectedMeal = (nextMenus, meal) => {
+    const existing = nextMenus.find((item) => item.tip_obroka === meal);
 
     if (!existing) {
       setCurrentMenuId(null);
@@ -76,8 +62,45 @@ function AdminMenza() {
     });
   };
 
+  useEffect(() => {
+    const controller = new AbortController();
+
+    api
+      .get(`/menza/admin/meni?datum=${datum}`, { signal: controller.signal })
+      .then((res) => {
+        const nextMenus = res.data.meni || [];
+        setMenus(nextMenus);
+        loadSelectedMeal(nextMenus, selectedMeal);
+      })
+      .catch((error) => {
+        if (error.code !== "ERR_CANCELED") {
+          setMessage(
+            error.response?.data?.message || "Greška pri učitavanju menija."
+          );
+        }
+      });
+
+    return () => controller.abort();
+  }, [datum]);
+
+  const fetchMenus = async () => {
+    try {
+      const res = await api.get(`/menza/admin/meni?datum=${datum}`);
+      const nextMenus = res.data.meni || [];
+      setMenus(nextMenus);
+      loadSelectedMeal(nextMenus, selectedMeal);
+    } catch (error) {
+      setMessage(error.response?.data?.message || "Greška pri učitavanju menija.");
+    }
+  };
+
   const saveMenu = async () => {
     setMessage("");
+
+    if (mutationBlockReason) {
+      setMessage(mutationBlockReason);
+      return;
+    }
 
     const payload = {
       datum,
@@ -160,7 +183,19 @@ function AdminMenza() {
               <input
                 type="date"
                 value={datum}
-                onChange={(e) => setDatum(e.target.value)}
+                onChange={(e) => {
+                  const nextDate = e.target.value;
+                  setMenus([]);
+                  setCurrentMenuId(null);
+                  setDatum(nextDate);
+
+                  if (!getAllowedMealsForDate(nextDate).includes(selectedMeal)) {
+                    setSelectedMeal("dorucak");
+                    loadSelectedMeal([], "dorucak");
+                  } else {
+                    loadSelectedMeal([], selectedMeal);
+                  }
+                }}
                 className="h-12 w-full rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] pl-11 pr-4 text-sm font-semibold outline-none focus:border-[#0b3a8f]"
               />
             </div>
@@ -175,16 +210,23 @@ function AdminMenza() {
               {meals.map((meal) => {
                 const Icon = meal.icon;
                 const active = selectedMeal === meal.key;
+                const disabled = !allowedMeals.includes(meal.key);
 
                 return (
                   <button
                     key={meal.key}
                     type="button"
-                    onClick={() => setSelectedMeal(meal.key)}
+                    onClick={() => {
+                      setSelectedMeal(meal.key);
+                      loadSelectedMeal(menus, meal.key);
+                    }}
+                    disabled={disabled}
                     className={`flex h-12 items-center justify-center gap-2 rounded-2xl border text-sm font-bold transition ${
                       active
                         ? "border-[#0b3a8f] bg-[#0b3a8f] text-white"
-                        : "border-[#dbe4f0] bg-[#F8FBFF] text-[#0b3a8f] hover:bg-white"
+                        : disabled
+                          ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                          : "border-[#dbe4f0] bg-[#F8FBFF] text-[#0b3a8f] hover:bg-white"
                     }`}
                   >
                     <Icon size={17} />
@@ -195,6 +237,18 @@ function AdminMenza() {
             </div>
           </div>
         </div>
+
+        <div className="mt-5 rounded-2xl border border-[#dbe4f0] bg-white p-4 text-sm font-semibold text-slate-600">
+          Radnim danima: doručak, ručak i večera. Subotom: doručak i ručak.
+          Nedeljom: samo doručak. Izmjene su moguće do 10:00 za doručak,
+          16:00 za ručak i 19:00 za večeru.
+        </div>
+
+        {mutationBlockReason && (
+          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-800">
+            {mutationBlockReason}
+          </div>
+        )}
 
         <div className="mt-7 rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] p-5">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -234,7 +288,8 @@ function AdminMenza() {
           <button
             type="button"
             onClick={saveMenu}
-            className="flex h-12 items-center gap-2 rounded-2xl bg-[#0b3a8f] px-6 text-sm font-bold text-white transition hover:bg-[#082d70]"
+            disabled={Boolean(mutationBlockReason)}
+            className="flex h-12 items-center gap-2 rounded-2xl bg-[#0b3a8f] px-6 text-sm font-bold text-white transition hover:bg-[#082d70] disabled:cursor-not-allowed disabled:bg-slate-300"
           >
             <Save size={18} />
             {currentMenuId ? "Sačuvaj izmjene" : "Dodaj meni"}
@@ -447,12 +502,81 @@ function getMealLabel(key) {
   return "Večera";
 }
 
+function getTodayISO() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getAllowedMealsForDate(value) {
+  const date = parseISODate(value);
+  if (!date) return [];
+
+  const dayOfWeek = date.getUTCDay();
+  if (dayOfWeek === 0) return ["dorucak"];
+  if (dayOfWeek === 6) return ["dorucak", "rucak"];
+  return ["dorucak", "rucak", "vecera"];
+}
+
+function getMutationBlockReason(value, meal) {
+  const date = parseISODate(value);
+  if (!date) return "Izaberi ispravan datum.";
+
+  const allowedMeals = getAllowedMealsForDate(value);
+  if (!allowedMeals.includes(meal)) {
+    return date.getUTCDay() === 0
+      ? "Nedeljom je moguće dodati samo doručak."
+      : "Subotom je moguće dodati samo doručak i ručak.";
+  }
+
+  const today = getTodayISO();
+  if (value < today) {
+    return "Nije moguće dodavati ili mijenjati meni za datum koji je prošao.";
+  }
+
+  if (value === today) {
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const endMinutes = {
+      dorucak: 10 * 60,
+      rucak: 16 * 60,
+      vecera: 19 * 60,
+    }[meal];
+
+    if (currentMinutes >= endMinutes) {
+      return `Vrijeme za ${getMealLabel(meal).toLowerCase()} je završeno i meni se više ne može mijenjati.`;
+    }
+  }
+
+  return "";
+}
+
+function parseISODate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || "")) return null;
+
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
 function formatDate(value) {
-  return new Date(value).toLocaleDateString("sr-Latn-ME", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  const date = parseISODate(value);
+  if (!date) return "-";
+
+  return `${String(date.getUTCDate()).padStart(2, "0")}.${String(
+    date.getUTCMonth() + 1
+  ).padStart(2, "0")}.${date.getUTCFullYear()}.`;
 }
 
 export default AdminMenza;

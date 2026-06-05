@@ -15,9 +15,9 @@ import PageHero from "../components/ui/PageHero";
 import menzaHero from "../assets/sections/menza.jpg";
 
 const mealTimes = {
-  dorucak: "07:00 - 09:00",
+  dorucak: "08:00 - 10:00",
   rucak: "11:00 - 16:00",
-  vecera: "17:00 - 20:00",
+  vecera: "17:00 - 19:00",
 };
 
 const meals = [

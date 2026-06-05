@@ -1,12 +1,17 @@
 const pool = require("../config/db");
+const {
+  getLocalNowParts,
+  getMenuMutationError,
+  isValidDateString,
+} = require("../utils/menzaMenuRules");
 
 const getMenzaData = async (req, res) => {
   try {
-    const weekStart = req.query.od || new Date().toISOString().slice(0, 10);
+    const weekStart = req.query.od || getLocalNowParts().date;
 
     const meni = await pool.query(
       `
-      SELECT id, datum, tip_obroka, aktivan, created_at,
+      SELECT id, datum::text AS datum, tip_obroka, aktivan, created_at,
              dorucak_stavke, glavna_jela, prilozi, salate, dodatno
       FROM meni
       WHERE datum BETWEEN $1::date AND ($1::date + INTERVAL '6 days')::date
@@ -61,14 +66,20 @@ const getMenzaData = async (req, res) => {
 
 const getAdminMenzaMenuByDate = async (req, res) => {
   try {
-    const datum = req.query.datum || new Date().toISOString().slice(0, 10);
+    const datum = req.query.datum;
+
+    if (!isValidDateString(datum)) {
+      return res.status(400).json({
+        message: "Datum mora biti u formatu YYYY-MM-DD.",
+      });
+    }
 
     const result = await pool.query(
       `
-      SELECT id, datum, tip_obroka, aktivan, created_at,
+      SELECT id, datum::text AS datum, tip_obroka, aktivan, created_at,
              dorucak_stavke, glavna_jela, prilozi, salate, dodatno
       FROM meni
-      WHERE datum = $1
+      WHERE datum = $1::date
       ORDER BY
       CASE tip_obroka
         WHEN 'dorucak' THEN 1
@@ -101,6 +112,32 @@ const saveMenzaMenu = async (req, res) => {
       dodatno,
       aktivan,
     } = req.body;
+
+    const validationError = getMenuMutationError({
+      datum,
+      tipObroka: tip_obroka,
+    });
+
+    if (validationError) {
+      return res.status(400).json({ message: validationError });
+    }
+
+    const existing = await pool.query(
+      `
+      SELECT id
+      FROM meni
+      WHERE datum = $1::date AND tip_obroka = $2
+      LIMIT 1
+      `,
+      [datum, tip_obroka]
+    );
+
+    if (existing.rows[0]) {
+      return res.status(409).json({
+        message:
+          "Meni za izabrani datum i obrok već postoji. Osvježi stranicu i izmijeni postojeći meni.",
+      });
+    }
 
     const result = await pool.query(
       `
@@ -150,23 +187,47 @@ const updateMenzaMenu = async (req, res) => {
       aktivan,
     } = req.body;
 
+    const existing = await pool.query(
+      `SELECT id, datum::text AS datum, tip_obroka FROM meni WHERE id = $1`,
+      [id]
+    );
+
+    if (!existing.rows[0]) {
+      return res.status(404).json({ message: "Meni nije pronađen." });
+    }
+
+    if (
+      existing.rows[0].datum !== datum ||
+      existing.rows[0].tip_obroka !== tip_obroka
+    ) {
+      return res.status(409).json({
+        message:
+          "Izabrani meni pripada drugom datumu ili obroku. Osvježi stranicu i pokušaj ponovo.",
+      });
+    }
+
+    const validationError = getMenuMutationError({
+      datum,
+      tipObroka: tip_obroka,
+    });
+
+    if (validationError) {
+      return res.status(400).json({ message: validationError });
+    }
+
     const result = await pool.query(
       `
       UPDATE meni
-      SET datum = $1,
-          tip_obroka = $2,
-          dorucak_stavke = $3::jsonb,
-          glavna_jela = $4::jsonb,
-          prilozi = $5::jsonb,
-          salate = $6::jsonb,
-          dodatno = $7::jsonb,
-          aktivan = $8
-      WHERE id = $9
+      SET dorucak_stavke = $1::jsonb,
+          glavna_jela = $2::jsonb,
+          prilozi = $3::jsonb,
+          salate = $4::jsonb,
+          dodatno = $5::jsonb,
+          aktivan = $6
+      WHERE id = $7
       RETURNING *
       `,
       [
-        datum,
-        tip_obroka,
         JSON.stringify(dorucak_stavke || []),
         JSON.stringify(glavna_jela || []),
         JSON.stringify(prilozi || []),

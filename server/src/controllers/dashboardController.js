@@ -74,7 +74,7 @@ const getDashboardData = async (req, res) => {
     `);
 
     const menu = await pool.query(`
-      SELECT id, datum, tip_obroka, aktivan,
+      SELECT id, datum::text AS datum, tip_obroka, aktivan,
              dorucak_stavke, glavna_jela, prilozi, salate, dodatno
       FROM meni
       WHERE aktivan = true

@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { getMenuMutationError } = require("../utils/menzaMenuRules");
 
 const createAnnouncement = async (req, res) => {
   try {
@@ -22,11 +23,60 @@ const createMenuItem = async (req, res) => {
   try {
     const { datum, tip_obroka, naslov, opis, aktivan } = req.body;
 
+    const validationError = getMenuMutationError({
+      datum,
+      tipObroka: tip_obroka,
+    });
+
+    if (validationError) {
+      return res.status(400).json({ message: validationError });
+    }
+
+    if (!String(naslov || "").trim()) {
+      return res.status(400).json({ message: "Naziv obroka je obavezan." });
+    }
+
+    const existing = await pool.query(
+      `
+      SELECT id
+      FROM meni
+      WHERE datum = $1::date AND tip_obroka = $2
+      LIMIT 1
+      `,
+      [datum, tip_obroka]
+    );
+
+    if (existing.rows[0]) {
+      return res.status(409).json({
+        message: "Meni za izabrani datum i obrok već postoji.",
+      });
+    }
+
+    const dorucakStavke =
+      tip_obroka === "dorucak"
+        ? [{ naziv: naslov.trim(), bonovi: 0, cijena: "" }]
+        : [];
+    const glavnaJela = tip_obroka === "dorucak" ? [] : [naslov.trim()];
+    const dodatno =
+      tip_obroka !== "dorucak" && String(opis || "").trim()
+        ? [opis.trim()]
+        : [];
+
     const result = await pool.query(
-      `INSERT INTO meni (datum, tip_obroka, naslov, opis, aktivan)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO meni (
+         datum, tip_obroka, dorucak_stavke,
+         glavna_jela, prilozi, salate, dodatno, aktivan
+       )
+       VALUES ($1, $2, $3::jsonb, $4::jsonb, '[]'::jsonb, '[]'::jsonb, $5::jsonb, $6)
        RETURNING *`,
-      [datum, tip_obroka, naslov, opis, aktivan ?? true]
+      [
+        datum,
+        tip_obroka,
+        JSON.stringify(dorucakStavke),
+        JSON.stringify(glavnaJela),
+        JSON.stringify(dodatno),
+        aktivan ?? true,
+      ]
     );
 
     res.status(201).json({ message: "Meni dodat.", menu: result.rows[0] });

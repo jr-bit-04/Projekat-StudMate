@@ -220,19 +220,26 @@ async function getModuleSummary(
       }>;
     }>(`/menza/admin/meni?datum=${today}`);
     const meni = response.data.meni || [];
+    const dayOfWeek = new Date(`${today}T12:00:00Z`).getUTCDay();
+    const expectedMeals = dayOfWeek === 0 ? 1 : dayOfWeek === 6 ? 2 : 3;
+    const completedMeals = new Set(meni.map((item) => item.tip_obroka)).size;
+    const menuIsComplete = completedMeals >= expectedMeals;
 
     return {
       cards: [
         { label: "Datum", value: formatDate(today) },
-        { label: "Uneseni obroci", value: `${meni.length}/3` },
+        {
+          label: "Uneseni obroci",
+          value: `${completedMeals}/${expectedMeals}`,
+        },
         {
           label: "Status danas",
-          value: meni.length === 3 ? "Spremno" : "Dopuna",
+          value: menuIsComplete ? "Spremno" : "Dopuna",
         },
       ],
       note:
-        meni.length === 3
-          ? "Meni je dodat za sva tri obroka danas."
+        menuIsComplete
+          ? "Meni je dodat za sve obroke koji se danas služe."
           : "Za danas jos nijesu uneseni svi obroci.",
     };
   }

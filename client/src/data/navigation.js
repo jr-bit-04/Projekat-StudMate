@@ -14,7 +14,7 @@ export const navigation = [
   { title: "Stipendije", path: "/stipendije", icon: GraduationCap, roles: ["student"] },
   { title: "Profil", path: "/profil", icon: User, roles: ["student"] },
 
-  { title: "Menza", path: "/admin/menza", icon: UtensilsCrossed, roles: ["admin"], module: "menza" },
+  { title: "Jelovnik", path: "/admin/menza", icon: UtensilsCrossed, roles: ["admin"], module: "menza" },
   { title: "Bonovi studenata", path: "/admin/menza/bonovi", icon: Ticket, roles: ["admin"], module: "menza" },
   { title: "Obavještenja", path: "/admin/menza/obavjestenja", icon: Bell, roles: ["admin"], module: "menza" },
   { title: "Profil", path: "/profil", icon: User, roles: ["admin"], module: "menza" },

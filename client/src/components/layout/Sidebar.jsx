@@ -1,5 +1,17 @@
-import { NavLink } from "react-router-dom";
-import { LogOut, User, Users } from "lucide-react";
+import { useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
+import {
+  BookOpen,
+  Building2,
+  ChevronDown,
+  GraduationCap,
+  LogOut,
+  Percent,
+  Settings,
+  UtensilsCrossed,
+  User,
+  Users,
+} from "lucide-react";
 
 import { navigation, getGlobalAdminGroups } from "../../data/navigation";
 import useStoredUser from "../../hooks/useStoredUser";
@@ -30,7 +42,7 @@ function Sidebar() {
   });
 
   return (
-    <aside className="hidden h-screen w-[280px] border-r border-white/10 bg-[#0b3a8f]/82 px-5 py-6 text-white shadow-[20px_0_60px_rgba(0,0,0,0.16)] backdrop-blur-md lg:flex lg:flex-col">
+    <aside className="hidden min-h-screen w-[280px] self-stretch border-r border-white/10 bg-[#0b3a8f]/82 px-5 py-6 text-white shadow-[20px_0_60px_rgba(0,0,0,0.16)] backdrop-blur-md lg:flex lg:flex-col">
       <div className="mb-8 flex items-center gap-3">
         <img src={ucgLogo} alt="UCG" className="h-12 w-12 object-contain" />
 
@@ -42,33 +54,9 @@ function Sidebar() {
         </div>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-2 overflow-y-auto pr-1">
+      <nav className="flex flex-1 flex-col gap-2 pr-1">
         {isGlobalAdmin ? (
-          <>
-            {getGlobalAdminGroups().map((group) => (
-              <div key={group.module} className="flex flex-col gap-1">
-                <p className="px-4 pb-1 pt-3 text-[11px] font-black uppercase tracking-[0.16em] text-blue-200">
-                  {group.label}
-                </p>
-
-                {group.items.map((item) => (
-                  <SidebarLink key={item.path} item={item} />
-                ))}
-              </div>
-            ))}
-
-            <p className="px-4 pb-1 pt-3 text-[11px] font-black uppercase tracking-[0.16em] text-blue-200">
-              Sistem
-            </p>
-
-            <SidebarLink
-              item={{ title: "Korisnici", path: "/admin/korisnici", icon: Users }}
-            />
-
-            <SidebarLink
-              item={{ title: "Profil", path: "/profil", icon: User }}
-            />
-          </>
+          <GlobalAdminNavigation />
         ) : (
           visibleNavigation.map((item) => (
             <SidebarLink key={item.path} item={item} />
@@ -108,14 +96,89 @@ function Sidebar() {
   );
 }
 
-function SidebarLink({ item }) {
+const globalAdminIcons = {
+  menza: UtensilsCrossed,
+  dom: Building2,
+  citaona: BookOpen,
+  popusti: Percent,
+  stipendije: GraduationCap,
+  sistem: Settings,
+};
+
+function GlobalAdminNavigation() {
+  const location = useLocation();
+  const groups = [
+    ...getGlobalAdminGroups(),
+    {
+      module: "sistem",
+      label: "Sistem",
+      items: [
+        { title: "Korisnici", path: "/admin/korisnici", icon: Users },
+        { title: "Profil", path: "/profil", icon: User },
+      ],
+    },
+  ];
+
+  const activeModule =
+    groups.find((group) =>
+      group.items.some((item) => location.pathname === item.path)
+    )?.module || null;
+
+  const [openModule, setOpenModule] = useState(activeModule);
+
+  return groups.map((group) => {
+    const Icon = globalAdminIcons[group.module];
+    const isOpen = openModule === group.module;
+    const isActive = activeModule === group.module;
+
+    return (
+      <div key={group.module} className="flex flex-col gap-1">
+        <button
+          type="button"
+          onClick={() =>
+            setOpenModule((current) =>
+              current === group.module ? null : group.module
+            )
+          }
+          className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition ${
+            isActive
+              ? "bg-white text-[#0b3a8f] shadow-lg"
+              : isOpen
+                ? "bg-white/15 text-white"
+                : "text-blue-100 hover:bg-white/10 hover:text-white"
+          }`}
+          aria-expanded={isOpen}
+        >
+          <Icon size={20} />
+          <span className="flex-1">{group.label}</span>
+          <ChevronDown
+            size={17}
+            className={`transition-transform ${isOpen ? "rotate-180" : ""}`}
+          />
+        </button>
+
+        {isOpen && (
+          <div className="ml-5 flex flex-col gap-1 border-l border-white/20 pl-3">
+            {group.items.map((item) => (
+              <SidebarLink key={item.path} item={item} nested />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  });
+}
+
+function SidebarLink({ item, nested = false }) {
   const Icon = item.icon;
 
   return (
     <NavLink
       to={item.path}
       className={({ isActive }) =>
-        `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition ${
+        `flex items-center gap-3 rounded-2xl px-4 text-sm font-bold transition ${
+          nested ? "py-2.5" : "py-3"
+        } ${
           isActive
             ? "bg-white text-[#0b3a8f] shadow-lg"
             : "text-blue-100 hover:bg-white/10 hover:text-white"

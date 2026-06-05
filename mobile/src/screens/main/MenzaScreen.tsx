@@ -24,9 +24,9 @@ import {
 } from "../../utils/format";
 
 const meals = [
-  { key: "dorucak", label: "Dorucak", time: "07:00 - 09:00" },
+  { key: "dorucak", label: "Dorucak", time: "08:00 - 10:00" },
   { key: "rucak", label: "Rucak", time: "11:00 - 16:00" },
-  { key: "vecera", label: "Vecera", time: "17:00 - 20:00" },
+  { key: "vecera", label: "Vecera", time: "17:00 - 19:00" },
 ] as const;
 
 interface MenzaData {
