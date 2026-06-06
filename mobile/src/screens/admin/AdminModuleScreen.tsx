@@ -15,6 +15,7 @@ import {
   getAccessibleAdminModules,
   getAdminModuleMeta,
 } from "../../data/adminModules";
+import { ADMIN_MENU } from "../../data/mainMenu";
 import { AdminStackParamList } from "../../navigation/types";
 import { AuthUser } from "../../types/auth";
 import { colors } from "../../theme/colors";
@@ -104,6 +105,7 @@ export function AdminModuleScreen({ navigation, route }: Props) {
         "Profil i odjava",
       ]}
       image={meta.image}
+      menuItems={ADMIN_MENU}
       onRefresh={() => {
         setRefreshing(true);
         setRefreshToken((current) => current + 1);

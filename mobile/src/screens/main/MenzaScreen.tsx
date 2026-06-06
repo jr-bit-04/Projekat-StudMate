@@ -24,9 +24,9 @@ import {
 } from "../../utils/format";
 
 const meals = [
-  { key: "dorucak", label: "Doručak", time: "08:00 - 10:00" },
-  { key: "rucak", label: "Ručak", time: "11:00 - 16:00" },
-  { key: "vecera", label: "Večera", time: "17:00 - 19:00" },
+  { key: "dorucak", label: "Doručak", time: "08:00–10:00" },
+  { key: "rucak", label: "Ručak", time: "11:00–16:00" },
+  { key: "vecera", label: "Večera", time: "17:00–19:00" },
 ] as const;
 
 interface MenzaData {
@@ -84,11 +84,6 @@ export function MenzaScreen() {
   return (
     <ScreenShell
       eyebrow="Menza"
-      highlights={[
-        `${String(data.bonovi?.dorucak ?? 0)} doručak`,
-        `${String(data.bonovi?.rucak ?? 0)} ručak`,
-        `${String(data.bonovi?.vecera ?? 0)} večera`,
-      ]}
       image={menzaHero}
       onRefresh={() => {
         setRefreshing(true);
@@ -105,7 +100,13 @@ export function MenzaScreen() {
           {meals.map((meal) => (
             <View key={meal.key} style={styles.ticketCard}>
               <Text style={styles.ticketTitle}>{meal.label}</Text>
-              <Text style={styles.ticketTime}>{meal.time}</Text>
+              <Text
+                adjustsFontSizeToFit
+                numberOfLines={1}
+                style={styles.ticketTime}
+              >
+                {meal.time}
+              </Text>
               <Text style={styles.ticketCount}>
                 {String(data.bonovi?.[meal.key] ?? 0)}
               </Text>
@@ -416,7 +417,7 @@ const styles = StyleSheet.create({
   },
   ticketTime: {
     color: colors.textMuted,
-    fontSize: 12,
+    fontSize: 11,
     marginTop: 6,
   },
   ticketTitle: {

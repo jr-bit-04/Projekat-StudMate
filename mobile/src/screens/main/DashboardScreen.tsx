@@ -227,7 +227,13 @@ export function DashboardScreen({ navigation }: Props) {
                     color={shortcut.badgeColor}
                   />
                 </View>
-                <Text style={styles.shortcutTitle}>{shortcut.title}</Text>
+                <View style={styles.moduleItemText}>
+                  <Text style={styles.shortcutTitle}>{shortcut.title}</Text>
+                  <Text style={styles.shortcutDescription}>
+                    {shortcut.description}
+                  </Text>
+                </View>
+                <AppIcon name="arrow-right" size={18} color={colors.textSoft} />
               </Pressable>
             ))}
           </View>
@@ -439,7 +445,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     height: 48,
     justifyContent: "center",
-    marginBottom: 12,
     width: 48,
   },
   shortcutCard: {
@@ -470,10 +475,12 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   moduleGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
+    gap: 10,
     marginTop: 12,
+  },
+  moduleItemText: {
+    flex: 1,
+    minWidth: 0,
   },
   moduleHeaderRow: {
     alignItems: "center",
@@ -491,13 +498,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: colors.surface,
     borderColor: colors.border,
-    borderRadius: 22,
+    borderRadius: 18,
     borderWidth: 1,
-    flexBasis: "31%",
-    minHeight: 124,
-    justifyContent: "center",
-    padding: 14,
-    width: "31%",
+    flexDirection: "row",
+    gap: 14,
+    padding: 12,
+    width: "100%",
   },
   moduleTitle: {
     color: colors.text,

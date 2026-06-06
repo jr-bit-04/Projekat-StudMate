@@ -3,6 +3,8 @@ import { AdminManagedModule } from "../data/adminModules";
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
+  PartnerPortal: undefined;
+  ForgotPassword: undefined;
 };
 
 export type MainStackParamList = {

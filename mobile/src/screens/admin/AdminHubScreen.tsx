@@ -10,6 +10,7 @@ import {
   getAccessibleAdminModules,
   getAdminModuleMeta,
 } from "../../data/adminModules";
+import { ADMIN_MENU } from "../../data/mainMenu";
 import { AdminStackParamList } from "../../navigation/types";
 import { colors } from "../../theme/colors";
 
@@ -53,6 +54,7 @@ export function AdminHubScreen({ navigation }: Props) {
         "Profil i odjava",
       ]}
       image={heroImage}
+      menuItems={ADMIN_MENU}
       subtitle="Izaberi sektor koji želiš da uređuješ."
       title="Admin panel"
     >

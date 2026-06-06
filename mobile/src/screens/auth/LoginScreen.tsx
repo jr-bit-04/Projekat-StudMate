@@ -28,13 +28,24 @@ export function LoginScreen({ navigation }: Props) {
 
   return (
     <AuthShell
+      afterDivider={
+        <Text style={styles.footerText}>
+          Nemaš nalog?{" "}
+          <Text onPress={() => navigation.navigate("Register")} style={styles.footerLink}>
+            Registruj se
+          </Text>
+        </Text>
+      }
       eyebrow="Prijava"
       footer={
         <View style={styles.footerBlock}>
-          <Text style={styles.footerText}>
-            Nemaš nalog?{" "}
-            <Text onPress={() => navigation.navigate("Register")} style={styles.footerLink}>
-              Registruj se
+          <Text style={styles.footerPartner}>
+            Partner ste?{" "}
+            <Text
+              onPress={() => navigation.navigate("PartnerPortal")}
+              style={styles.footerLink}
+            >
+              Partnerski portal
             </Text>
           </Text>
         </View>
@@ -69,7 +80,10 @@ export function LoginScreen({ navigation }: Props) {
         onPress={handleLogin}
       />
 
-      <Pressable style={styles.linkWrap}>
+      <Pressable
+        onPress={() => navigation.navigate("ForgotPassword")}
+        style={styles.linkWrap}
+      >
         <Text style={styles.linkText}>Zaboravljena lozinka?</Text>
       </Pressable>
     </AuthShell>
@@ -98,6 +112,12 @@ const styles = StyleSheet.create({
   footerText: {
     color: "rgba(219,234,254,0.9)",
     fontSize: 15,
+    textAlign: "center",
+  },
+  footerPartner: {
+    color: "rgba(219,234,254,0.78)",
+    fontSize: 14,
+    marginTop: 10,
     textAlign: "center",
   },
   linkText: {

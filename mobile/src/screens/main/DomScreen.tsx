@@ -159,7 +159,13 @@ export function DomScreen() {
                   pressed ? styles.pressed : null,
                 ]}
               >
-                <Text style={styles.monthText}>{month}</Text>
+                <Text
+                  adjustsFontSizeToFit
+                  numberOfLines={1}
+                  style={styles.monthText}
+                >
+                  {month}
+                </Text>
               </Pressable>
             );
           })}
@@ -280,8 +286,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   infoGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
     gap: 12,
   },
   infoLabel: {
@@ -295,13 +299,11 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 18,
     borderWidth: 1,
-    flex: 1,
-    minWidth: "47%",
     padding: 14,
   },
   infoValue: {
     color: colors.text,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "800",
     marginTop: 6,
   },
@@ -320,12 +322,16 @@ const styles = StyleSheet.create({
   },
   monthActive: {
     borderColor: colors.primary,
-    borderWidth: 2,
   },
   monthCard: {
-    borderRadius: 20,
-    minWidth: "31%",
-    padding: 16,
+    alignItems: "center",
+    borderColor: "transparent",
+    borderRadius: 16,
+    borderWidth: 2,
+    flexBasis: "30%",
+    flexGrow: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 14,
   },
   monthDefault: {
     backgroundColor: colors.surfaceMuted,
@@ -343,8 +349,9 @@ const styles = StyleSheet.create({
   },
   monthText: {
     color: colors.text,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "800",
+    textAlign: "center",
   },
   monthUnpaid: {
     backgroundColor: colors.dangerBg,

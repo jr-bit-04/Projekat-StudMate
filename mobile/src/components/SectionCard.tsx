@@ -34,11 +34,11 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderColor: colors.border,
-    borderRadius: 24,
+    borderRadius: 20,
     borderWidth: 1,
-    gap: 14,
-    marginBottom: 16,
-    padding: 18,
+    gap: 10,
+    marginBottom: 12,
+    padding: 14,
     shadowColor: "#0B3A8F",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.05,
@@ -56,13 +56,13 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: colors.textMuted,
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 4,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 3,
   },
   title: {
     color: colors.text,
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "800",
   },
 });

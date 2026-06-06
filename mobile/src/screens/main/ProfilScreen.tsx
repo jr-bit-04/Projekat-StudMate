@@ -21,7 +21,16 @@ import { colors } from "../../theme/colors";
 const MAX_AVATAR_SIZE_MB = 4;
 
 export function ProfilScreen() {
-  const { logout, refreshMe, replaceUser, user, isSubmitting } = useAuth();
+  const {
+    applySession,
+    clearResetMode,
+    isSubmitting,
+    logout,
+    refreshMe,
+    replaceUser,
+    resetMode,
+    user,
+  } = useAuth();
   const [message, setMessage] = useState("");
   const [avatarMessage, setAvatarMessage] = useState("");
   const [avatarData, setAvatarData] = useState("");
@@ -156,7 +165,7 @@ export function ProfilScreen() {
   async function changePassword() {
     setMessage("");
 
-    if (!form.currentPassword) {
+    if (!resetMode && !form.currentPassword) {
       setMessage("Unesi trenutnu lozinku.");
       return;
     }
@@ -173,13 +182,29 @@ export function ProfilScreen() {
 
     try {
       setIsSavingPassword(true);
-      const response = await api.put("/auth/change-password", {
-        currentPassword: form.currentPassword,
-        newPassword: form.newPassword,
-      });
+      const response = await api.put(
+        "/auth/change-password",
+        resetMode
+          ? { newPassword: form.newPassword }
+          : {
+              currentPassword: form.currentPassword,
+              newPassword: form.newPassword,
+            }
+      );
 
-      if (response.data?.user) {
-        await replaceUser(response.data.user);
+      if (response.data?.token && response.data?.user) {
+        await applySession(
+          {
+            token: response.data.token,
+            user: response.data.user,
+          },
+          { resetMode: false }
+        );
+      } else {
+        if (response.data?.user) {
+          await replaceUser(response.data.user);
+        }
+        clearResetMode();
       }
 
       setMessage(response.data?.message || "Lozinka je sačuvana.");
@@ -309,16 +334,24 @@ export function ProfilScreen() {
       ) : null}
 
       <SectionCard subtitle="Promijeni lozinku i zaštiti svoj nalog." title="Promjena lozinke">
-        <TextInput
-          onChangeText={(value) =>
-            setForm((current) => ({ ...current, currentPassword: value }))
-          }
-          placeholder="Trenutna lozinka"
-          placeholderTextColor={colors.textSoft}
-          secureTextEntry
-          style={styles.input}
-          value={form.currentPassword}
-        />
+        {resetMode ? (
+          <StatusBanner
+            text="Postavi novu lozinku da završiš reset naloga."
+            tone="warning"
+          />
+        ) : null}
+        {!resetMode ? (
+          <TextInput
+            onChangeText={(value) =>
+              setForm((current) => ({ ...current, currentPassword: value }))
+            }
+            placeholder="Trenutna lozinka"
+            placeholderTextColor={colors.textSoft}
+            secureTextEntry
+            style={styles.input}
+            value={form.currentPassword}
+          />
+        ) : null}
         <TextInput
           onChangeText={(value) =>
             setForm((current) => ({ ...current, newPassword: value }))

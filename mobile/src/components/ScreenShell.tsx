@@ -15,10 +15,12 @@ import {
 
 import backgroundArt from "../assets/background.png";
 import ucgLogo from "../assets/ucg-logo.png";
+import { MAIN_MENU, MenuItem } from "../data/mainMenu";
 import { useAuth } from "../context/AuthContext";
 import { colors } from "../theme/colors";
 import { AppIcon } from "./AppIcon";
 import { AvatarCircle } from "./AvatarCircle";
+import { ModuleMenu } from "./ModuleMenu";
 
 interface ScreenShellProps extends PropsWithChildren {
   eyebrow?: string;
@@ -29,6 +31,7 @@ interface ScreenShellProps extends PropsWithChildren {
   onRefresh?: () => void;
   image?: ImageSourcePropType;
   highlights?: string[];
+  menuItems?: MenuItem[] | null;
 }
 
 export function ScreenShell({
@@ -37,6 +40,7 @@ export function ScreenShell({
   highlights = [],
   image,
   eyebrow,
+  menuItems = MAIN_MENU,
   onRefresh,
   refreshing = false,
   subtitle,
@@ -99,29 +103,32 @@ export function ScreenShell({
             ) : null}
           </View>
 
-          {(canGoBack || user) ? (
+          {(menuItems || canGoBack || user) ? (
             <View
               style={[
                 styles.utilityRow,
-                !canGoBack ? styles.utilityRowEnd : null,
                 isCompact ? styles.utilityRowCompact : null,
               ]}
             >
-              {canGoBack ? (
-                <Pressable
-                  onPress={() => navigation.goBack()}
-                  style={({ pressed }) => [
-                    styles.backButton,
-                    isCompact ? styles.backButtonCompact : null,
-                    pressed ? styles.backButtonPressed : null,
-                  ]}
-                >
-                  <AppIcon name="back" size={18} color={colors.white} />
-                  {!isCompact ? (
-                    <Text style={styles.backButtonText}>Nazad</Text>
-                  ) : null}
-                </Pressable>
-              ) : null}
+              <View style={styles.utilityLeft}>
+                {menuItems ? <ModuleMenu items={menuItems} /> : null}
+
+                {canGoBack ? (
+                  <Pressable
+                    onPress={() => navigation.goBack()}
+                    style={({ pressed }) => [
+                      styles.backButton,
+                      isCompact ? styles.backButtonCompact : null,
+                      pressed ? styles.backButtonPressed : null,
+                    ]}
+                  >
+                    <AppIcon name="back" size={18} color={colors.white} />
+                    {!isCompact ? (
+                      <Text style={styles.backButtonText}>Nazad</Text>
+                    ) : null}
+                  </Pressable>
+                ) : null}
+              </View>
 
               {user ? (
                 <View style={styles.userMeta}>
@@ -174,7 +181,7 @@ export function ScreenShell({
 
 const styles = StyleSheet.create({
   action: {
-    marginTop: 16,
+    marginTop: 12,
   },
   background: {
     flex: 1,
@@ -240,25 +247,25 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   content: {
-    padding: 20,
-    paddingBottom: 40,
+    padding: 14,
+    paddingBottom: 26,
   },
   eyebrow: {
     color: colors.primary,
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 1,
-    marginBottom: 10,
+    marginBottom: 6,
     textTransform: "uppercase",
   },
   hero: {
     backgroundColor: colors.surface,
     borderColor: colors.border,
-    borderRadius: 28,
+    borderRadius: 22,
     borderWidth: 1,
-    marginBottom: 16,
+    marginBottom: 12,
     overflow: "hidden",
-    padding: 22,
+    padding: 16,
     shadowColor: "#0B3A8F",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.08,
@@ -266,7 +273,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   heroImage: {
-    height: 220,
+    height: 150,
     width: "100%",
   },
   heroRowWide: {
@@ -303,19 +310,19 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 999,
     borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
   highlightChipText: {
     color: colors.text,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
   },
   highlightRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
-    marginTop: 16,
+    marginTop: 12,
   },
   imageFrame: {
     backgroundColor: colors.surfaceMuted,
@@ -332,13 +339,13 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: colors.textMuted,
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: 8,
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 6,
   },
   title: {
     color: colors.text,
-    fontSize: 31,
+    fontSize: 24,
     fontWeight: "800",
   },
   logo: {
@@ -352,12 +359,12 @@ const styles = StyleSheet.create({
   topBar: {
     backgroundColor: "rgba(11,58,143,0.86)",
     borderColor: "rgba(255,255,255,0.12)",
-    borderRadius: 24,
+    borderRadius: 22,
     borderWidth: 1,
-    gap: 12,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    gap: 10,
+    marginBottom: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     shadowColor: "#0B3A8F",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.16,
@@ -373,6 +380,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
     justifyContent: "space-between",
+  },
+  utilityLeft: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
   },
   utilityRowCompact: {
     gap: 10,

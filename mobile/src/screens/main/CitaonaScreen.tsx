@@ -225,8 +225,8 @@ export function CitaonaScreen() {
     <ScreenShell
       eyebrow="Čitaonica"
       highlights={[
-        `Radijus ${tracking.radius_meters} m`,
-        `Odsustvo ${tracking.grace_minutes} min`,
+        `Radijus ${tracking.radius_meters}m`,
+        `Odsustvo ${tracking.grace_minutes}min`,
         isDailyTrackingMode ? "Dnevna rezervacija" : "Standardna rezervacija",
       ]}
       image={citaonaHero}
@@ -245,9 +245,11 @@ export function CitaonaScreen() {
       <SectionCard subtitle="Radno vrijeme i osnovne informacije o čitaonici." title="Info">
         <View style={styles.infoGrid}>
           <InfoTile label="Kapacitet" value="30 mjesta" />
-          <InfoTile label="Radni dani" value="07:00 - 21:00" />
-          <InfoTile label="Subota" value="07:00 - 15:00" />
-          <InfoTile label="Lokacija" value={tracking.address} />
+          <InfoTile
+            label="Radno vrijeme"
+            value={"Radni dani 07:00–21:00\nSubota 07:00–15:00\nNedjelja ne radi"}
+          />
+          <InfoTile label="Lokacija" singleLine value={tracking.address} />
         </View>
       </SectionCard>
 
@@ -486,11 +488,26 @@ export function CitaonaScreen() {
   );
 }
 
-function InfoTile({ label, value }: { label: string; value: string }) {
+function InfoTile({
+  label,
+  value,
+  singleLine = false,
+}: {
+  label: string;
+  value: string;
+  singleLine?: boolean;
+}) {
   return (
     <View style={styles.infoTile}>
       <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
+      <Text
+        adjustsFontSizeToFit={singleLine}
+        minimumFontScale={0.6}
+        numberOfLines={singleLine ? 1 : undefined}
+        style={styles.infoValue}
+      >
+        {value}
+      </Text>
     </View>
   );
 }
@@ -600,8 +617,6 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   infoGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
     gap: 10,
   },
   infoLabel: {
@@ -613,17 +628,17 @@ const styles = StyleSheet.create({
   infoTile: {
     backgroundColor: colors.surfaceMuted,
     borderColor: colors.border,
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
-    flex: 1,
-    minWidth: "47%",
-    padding: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
   },
   infoValue: {
     color: colors.text,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "800",
-    marginTop: 6,
+    lineHeight: 20,
+    marginTop: 4,
   },
   linkText: {
     color: colors.primary,

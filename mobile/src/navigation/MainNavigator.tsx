@@ -12,9 +12,14 @@ import { MainStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
 
-export function MainNavigator() {
+export function MainNavigator({
+  initialRouteName,
+}: {
+  initialRouteName?: keyof MainStackParamList;
+}) {
   return (
     <Stack.Navigator
+      initialRouteName={initialRouteName}
       screenOptions={{
         headerShown: false,
         contentStyle: {

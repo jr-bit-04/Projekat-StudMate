@@ -15,6 +15,7 @@ import { colors } from "../theme/colors";
 import { AppIcon, IconName } from "./AppIcon";
 
 interface AuthShellProps extends PropsWithChildren {
+  afterDivider?: ReactNode;
   brandCaption?: string;
   eyebrow: string;
   footer?: ReactNode;
@@ -23,6 +24,7 @@ interface AuthShellProps extends PropsWithChildren {
 }
 
 export function AuthShell({
+  afterDivider,
   brandCaption = "Sve studentske informacije na jednom mjestu",
   children,
   eyebrow,
@@ -55,17 +57,14 @@ export function AuthShell({
             <View style={styles.heroGlowTop} />
             <View style={styles.heroGlowBottom} />
             <View style={styles.heroHeader}>
-              <Text style={styles.eyebrow}>{eyebrow}</Text>
               <Text style={styles.title}>{title}</Text>
               <Text style={styles.subtitle}>{subtitle}</Text>
             </View>
             <View style={styles.formBody}>{children}</View>
 
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>ili</Text>
-              <View style={styles.dividerLine} />
-            </View>
+            {afterDivider ? (
+              <View style={styles.afterDivider}>{afterDivider}</View>
+            ) : null}
 
             <View style={styles.featuresRow}>
               <Feature icon="dom" label="Dom" />
@@ -163,6 +162,10 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 12,
     fontWeight: "600",
+  },
+  afterDivider: {
+    alignItems: "center",
+    marginTop: 16,
   },
   featuresRow: {
     flexDirection: "row",

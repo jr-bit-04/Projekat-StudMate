@@ -10,7 +10,11 @@ import { AdminStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<AdminStackParamList>();
 
-export function AdminNavigator() {
+export function AdminNavigator({
+  initialRouteName,
+}: {
+  initialRouteName?: keyof AdminStackParamList;
+}) {
   const { user } = useAuth();
   const defaultModule = getDefaultAdminModule(user);
   const isGlobalAdmin = user?.role === "admin" && user?.admin_module === "all";
@@ -18,7 +22,9 @@ export function AdminNavigator() {
 
   return (
     <Stack.Navigator
-      initialRouteName={showHub ? "AdminHub" : "AdminModule"}
+      initialRouteName={
+        initialRouteName ?? (showHub ? "AdminHub" : "AdminModule")
+      }
       screenOptions={{
         headerShown: false,
         contentStyle: {

@@ -31,11 +31,17 @@ interface AuthContextValue {
   status: AuthStatus;
   token: string | null;
   user: AuthUser | null;
+  resetMode: boolean;
   login: (payload: LoginPayload) => Promise<void>;
   logout: () => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
   refreshMe: () => Promise<AuthUser | null>;
   replaceUser: (user: AuthUser | null) => Promise<void>;
+  applySession: (
+    session: AuthSession,
+    options?: { resetMode?: boolean }
+  ) => Promise<void>;
+  clearResetMode: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -46,6 +52,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [resetMode, setResetMode] = useState(false);
 
   useEffect(() => {
     async function bootstrap() {
@@ -125,6 +132,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setUser(null);
       setStatus("unauthenticated");
       setError(null);
+      setResetMode(false);
     } finally {
       setIsSubmitting(false);
     }
@@ -133,6 +141,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const replaceUser = useCallback(async (nextUser: AuthUser | null) => {
     await saveStoredUser(nextUser);
     setUser(nextUser);
+  }, []);
+
+  const applySession = useCallback(
+    async (session: AuthSession, options?: { resetMode?: boolean }) => {
+      await persistSession(session);
+      setResetMode(options?.resetMode === true);
+    },
+    [persistSession]
+  );
+
+  const clearResetMode = useCallback(() => {
+    setResetMode(false);
   }, []);
 
   const refreshMe = useCallback(async () => {
@@ -158,11 +178,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
       status,
       token,
       user,
+      resetMode,
       login,
       logout,
       register,
       refreshMe,
       replaceUser,
+      applySession,
+      clearResetMode,
     }),
     [
       error,
@@ -170,11 +193,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
       status,
       token,
       user,
+      resetMode,
       login,
       logout,
       register,
       refreshMe,
       replaceUser,
+      applySession,
+      clearResetMode,
     ]
   );
 
