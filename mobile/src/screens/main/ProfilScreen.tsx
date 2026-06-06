@@ -16,6 +16,7 @@ import { ScreenShell } from "../../components/ScreenShell";
 import { SectionCard } from "../../components/SectionCard";
 import { StatusBanner } from "../../components/StatusBanner";
 import { useAuth } from "../../context/AuthContext";
+import { ADMIN_MENU, MAIN_MENU } from "../../data/mainMenu";
 import { colors } from "../../theme/colors";
 
 const MAX_AVATAR_SIZE_MB = 4;
@@ -246,6 +247,7 @@ export function ProfilScreen() {
         user?.index_number ? `Indeks ${user.index_number}` : "Indeks nije dodat",
         user?.dorm || "Dom nije dodat",
       ]}
+      menuItems={user?.role === "admin" ? ADMIN_MENU : MAIN_MENU}
       onRefresh={() => {
         setRefreshing(true);
         loadProfile().finally(() => setRefreshing(false));

@@ -115,7 +115,11 @@ export function ScreenShell({
 
                 {canGoBack ? (
                   <Pressable
-                    onPress={() => navigation.goBack()}
+                    onPress={() => {
+                      if (navigation.canGoBack()) {
+                        navigation.goBack();
+                      }
+                    }}
                     style={({ pressed }) => [
                       styles.backButton,
                       isCompact ? styles.backButtonCompact : null,

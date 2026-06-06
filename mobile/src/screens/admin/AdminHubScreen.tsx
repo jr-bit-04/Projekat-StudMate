@@ -19,7 +19,6 @@ type Props = NativeStackScreenProps<AdminStackParamList, "AdminHub">;
 export function AdminHubScreen({ navigation }: Props) {
   const { logout, user, isSubmitting } = useAuth();
   const modules = getAccessibleAdminModules(user);
-  const heroImage = modules.length > 0 ? getAdminModuleMeta(modules[0]).image : undefined;
 
   return (
     <ScreenShell
@@ -53,7 +52,6 @@ export function AdminHubScreen({ navigation }: Props) {
         "Pregled svih modula",
         "Profil i odjava",
       ]}
-      image={heroImage}
       menuItems={ADMIN_MENU}
       subtitle="Izaberi sektor koji želiš da uređuješ."
       title="Admin panel"

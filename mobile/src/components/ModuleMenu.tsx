@@ -28,10 +28,15 @@ export function ModuleMenu({ items }: ModuleMenuProps) {
   const currentRoute = useNavigationState(
     (state) => state.routes[state.index]?.name
   );
+  const routeNames = useNavigationState((state) => state.routeNames);
+
+  // Prikazujemo samo rute koje stvarno postoje u trenutnom navigatoru,
+  // da klik nikad ne baci "NAVIGATE not handled" gresku.
+  const visibleItems = items.filter((item) => routeNames.includes(item.route));
 
   function go(route: string) {
     setOpen(false);
-    if (route !== currentRoute) {
+    if (route !== currentRoute && routeNames.includes(route)) {
       navigation.navigate(route as never);
     }
   }
@@ -72,7 +77,7 @@ export function ModuleMenu({ items }: ModuleMenuProps) {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              {items.map((item) => {
+              {visibleItems.map((item) => {
                 const active = item.route === currentRoute;
 
                 return (
