@@ -53,6 +53,9 @@ async function registerPushToken() {
   try {
     const push = await registerForPushNotificationsAsync();
     if (!push.token) {
+      if (push.error) {
+        console.warn("Push token registration skipped:", push.error);
+      }
       return;
     }
 
@@ -65,4 +68,3 @@ async function registerPushToken() {
     console.warn("Push token registration failed", error);
   }
 }
-

@@ -85,6 +85,11 @@ function Login() {
 
       redirectUser(res.data.user);
     } catch (error) {
+      if (!error.response) {
+        setError("Server nije dostupan ili frontend nije dozvoljen u CORS podešavanjima.");
+        return;
+      }
+
       setError(
         error.response?.data?.message || "Greška pri prijavi."
       );

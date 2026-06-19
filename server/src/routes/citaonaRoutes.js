@@ -11,6 +11,8 @@ const {
   registerPushToken,
   getAdminReservations,
   createAdminReservation,
+  createCitaonica,
+  deleteCitaonica,
 } = require("../controllers/citaonaController");
 
 const {
@@ -49,6 +51,18 @@ router.post(
   protect,
   requireModuleAdmin("citaona"),
   createAdminReservation
+);
+router.post(
+  "/admin/citaonice",
+  protect,
+  requireModuleAdmin("citaona"),
+  createCitaonica
+);
+router.delete(
+  "/admin/citaonice/:id",
+  protect,
+  requireModuleAdmin("citaona"),
+  deleteCitaonica
 );
 
 module.exports = router;

@@ -1,6 +1,8 @@
 const crypto = require("crypto");
 const pool = require("../config/db");
-const { broadcastPushToStudents } = require("../utils/pushNotifications");
+const {
+  notifyStudentsAboutDiscount,
+} = require("../utils/discountNotifications");
 
 function generateApiKey() {
   return crypto.randomBytes(24).toString("hex");
@@ -24,33 +26,6 @@ function normalizeWebsiteUrl(value) {
   } catch {
     return null;
   }
-}
-
-async function notifyStudentsAboutApprovedDiscount(popust) {
-  if (!popust || popust.push_notified_at || popust.aktivan !== true) {
-    return;
-  }
-
-  await broadcastPushToStudents({
-    title: "Novi studentski popust",
-    body: `${popust.naslov} je sada dostupan u aplikaciji StudMate.`,
-    data: {
-      type: "discount_approved",
-      discountId: popust.id,
-      category: popust.kategorija || null,
-    },
-  });
-
-  await pool.query(
-    `
-    UPDATE popust
-    SET push_notified_at = NOW(),
-        updated_at = NOW()
-    WHERE id = $1
-      AND push_notified_at IS NULL
-    `,
-    [popust.id]
-  );
 }
 
 const getPopustiData = async (req, res) => {
@@ -140,7 +115,7 @@ const approvePopust = async (req, res) => {
     });
 
     try {
-      await notifyStudentsAboutApprovedDiscount(result.rows[0]);
+      await notifyStudentsAboutDiscount(result.rows[0]);
     } catch (pushError) {
       console.error(
         "GreÅ¡ka pri slanju push obavjeÅ¡tenja za odobreni popust:",

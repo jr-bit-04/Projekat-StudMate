@@ -204,7 +204,7 @@ async function sendCitaonaOutsideWarning(userId, reservation) {
 
   return sendPushToUsers([userId], {
     title: "Vrati se u citaonicu",
-    body: `Van si dozvoljenog radijusa. Rezervacija istice za oko ${remainingMinutes} min ako se ne vratis na vrijeme.`,
+    body: `Van si dozvoljenog radijusa. Ako se ne vratis u narednih ${remainingMinutes} min, rezervacija ce biti automatski otkazana.`,
     data: {
       type: "citaona_outside_warning",
       reservationId: reservation.id,
@@ -225,6 +225,33 @@ async function sendCitaonaAutoCancelNotification(userId, reservation) {
   });
 }
 
+async function sendCitaonaMissedCheckInNotification(userId, reservation) {
+  return sendPushToUsers([userId], {
+    title: "Rezervacija je otkazana",
+    body: "Rezervacija u citaonici je automatski otkazana jer se nisi prijavio u roku od 15 minuta.",
+    data: {
+      type: "citaona_no_show_cancelled",
+      reservationId: reservation.id,
+      cancellationReason: reservation.cancellation_reason || "missed_check_in",
+    },
+  });
+}
+
+async function sendCitaonaRoomDeletedNotification(userIds, roomName) {
+  if (!Array.isArray(userIds) || userIds.length === 0) {
+    return;
+  }
+
+  return sendPushToUsers(userIds, {
+    title: "Rezervacija je otkazana",
+    body: `Rezervacija u citaonici ${roomName} je otkazana jer citaonica vise nije dostupna.`,
+    data: {
+      type: "citaona_room_deleted",
+      roomName,
+    },
+  });
+}
+
 function mapReservation(row) {
   if (!row) return row;
 
@@ -236,6 +263,93 @@ function mapReservation(row) {
         ? getRemainingGraceMinutes(row.outside_since)
         : null,
   };
+}
+
+function roomSupportsTracking(row) {
+  return (
+    row &&
+    row.tracking_latitude !== null &&
+    row.tracking_latitude !== undefined &&
+    row.tracking_longitude !== null &&
+    row.tracking_longitude !== undefined
+  );
+}
+
+async function getSeatById(seatId) {
+  const result = await pool.query(
+    `
+    SELECT
+      m.id,
+      m.broj_mjesta,
+      m.status,
+      m.citaonica_id,
+      c.naziv AS citaonica_naziv,
+      c.lokacija AS citaonica_lokacija,
+      c.tracking_latitude,
+      c.tracking_longitude
+    FROM mjesto m
+    JOIN citaonica c ON c.id = m.citaonica_id
+    WHERE m.id = $1
+    LIMIT 1
+    `,
+    [seatId]
+  );
+
+  const seat = result.rows[0] || null;
+
+  if (!seat) {
+    return null;
+  }
+
+  return {
+    ...seat,
+    tracking_supported: roomSupportsTracking(seat),
+  };
+}
+
+async function getVisibleCitaonice({ datum, vrijemeOd, vrijemeDo }) {
+  const result = await pool.query(
+    `
+    SELECT
+      c.id,
+      c.naziv,
+      c.lokacija,
+      COALESCE(stats.active_seats, 0)::INTEGER AS broj_mjesta,
+      COALESCE(occupied.zauzeta_mjesta, 0)::INTEGER AS zauzeta_mjesta,
+      GREATEST(
+        COALESCE(stats.active_seats, 0)::INTEGER - COALESCE(occupied.zauzeta_mjesta, 0)::INTEGER,
+        0
+      )::INTEGER AS slobodna_mjesta,
+      (c.tracking_latitude IS NOT NULL AND c.tracking_longitude IS NOT NULL) AS tracking_supported
+    FROM citaonica c
+    LEFT JOIN (
+      SELECT
+        citaonica_id,
+        COUNT(*) FILTER (WHERE status = 'active')::INTEGER AS active_seats
+      FROM mjesto
+      GROUP BY citaonica_id
+    ) stats ON stats.citaonica_id = c.id
+    LEFT JOIN (
+      SELECT
+        m.citaonica_id,
+        COUNT(DISTINCT r.mjesto_id)::INTEGER AS zauzeta_mjesta
+      FROM rezervacija r
+      JOIN mjesto m ON m.id = r.mjesto_id
+      WHERE r.datum = $1
+        AND r.status IN ('pending', 'active')
+        AND r.vrijeme_od < $3
+        AND r.vrijeme_do > $2
+        AND m.status = 'active'
+      GROUP BY m.citaonica_id
+    ) occupied ON occupied.citaonica_id = c.id
+    WHERE c.status = 'active'
+      AND COALESCE(stats.active_seats, 0) > 0
+    ORDER BY c.naziv ASC
+    `,
+    [datum, vrijemeOd, vrijemeDo]
+  );
+
+  return result.rows;
 }
 
 function isReservationInTrackingWindow(reservation) {
@@ -270,13 +384,32 @@ async function getCurrentUser(userId) {
 }
 
 async function markExpiredReservations() {
-  await pool.query(
+  const expiredPendingReservations = await pool.query(
     `
     UPDATE rezervacija
-    SET status = 'expired'
+    SET status = 'expired',
+        auto_cancelled_at = COALESCE(auto_cancelled_at, NOW()),
+        cancellation_reason = COALESCE(cancellation_reason, 'missed_check_in')
     WHERE status = 'pending'
     AND expires_at < NOW()
+    RETURNING id, user_id, cancellation_reason
     `
+  );
+
+  await Promise.all(
+    expiredPendingReservations.rows.map(async (reservation) => {
+      try {
+        await sendCitaonaMissedCheckInNotification(
+          reservation.user_id,
+          reservation
+        );
+      } catch (pushError) {
+        console.error(
+          "Greska pri slanju push obavjestenja za istek rezervacije bez dolaska:",
+          pushError.message
+        );
+      }
+    })
   );
 
   await pool.query(
@@ -332,6 +465,7 @@ const getCitaonaData = async (req, res) => {
     const datum = req.query.datum || new Date().toISOString().slice(0, 10);
     const vrijemeOd = req.query.vrijeme_od || "07:00";
     const trajanje = Number(req.query.trajanje || 60);
+    const requestedRoomId = Number.parseInt(req.query.citaonica_id, 10);
 
     const user = await getCurrentUser(req.user.id);
 
@@ -339,7 +473,29 @@ const getCitaonaData = async (req, res) => {
       return res.status(404).json({ message: "Korisnik nije pronađen." });
     }
 
-    const trackingEnabled = user.location_tracking_consent === true;
+    const trackingPreferenceEnabled = user.location_tracking_consent === true;
+    const requestedVrijemeDo = addMinutesToTime(
+      vrijemeOd,
+      durations.includes(trajanje) ? trajanje : 60
+    );
+    const initialRooms = await getVisibleCitaonice({
+      datum,
+      vrijemeOd,
+      vrijemeDo: requestedVrijemeDo,
+    });
+    const shouldFilterByRoom = user.role !== "admin";
+    const hasRequestedRoom =
+      Number.isFinite(requestedRoomId) &&
+      initialRooms.some((room) => room.id === requestedRoomId);
+    const selectedRoomId = shouldFilterByRoom
+      ? hasRequestedRoom
+        ? requestedRoomId
+        : initialRooms[0]?.id || null
+      : null;
+    const requestedRoom =
+      initialRooms.find((room) => room.id === selectedRoomId) || null;
+    const trackingEnabled =
+      trackingPreferenceEnabled && requestedRoom?.tracking_supported === true;
     const reservationWindow = getReservationWindow({
       trackingEnabled,
       datum,
@@ -349,15 +505,37 @@ const getCitaonaData = async (req, res) => {
 
     const effectiveVrijemeOd = reservationWindow?.vrijeme_od || vrijemeOd;
     const effectiveVrijemeDo =
-      reservationWindow?.vrijeme_do ||
-      addMinutesToTime(vrijemeOd, durations.includes(trajanje) ? trajanje : 60);
+      reservationWindow?.vrijeme_do || requestedVrijemeDo;
+
+    const visibleRooms = await getVisibleCitaonice({
+      datum,
+      vrijemeOd: effectiveVrijemeOd,
+      vrijemeDo: effectiveVrijemeDo,
+    });
+    const selectedRoom =
+      visibleRooms.find((room) => room.id === selectedRoomId) ||
+      requestedRoom ||
+      null;
 
     const mjesta = await pool.query(
       `
-      SELECT id, broj_mjesta, status
-      FROM mjesto
-      ORDER BY broj_mjesta ASC
+      SELECT
+        m.id,
+        m.broj_mjesta,
+        m.status,
+        m.citaonica_id,
+        c.naziv AS citaonica_naziv,
+        c.lokacija AS citaonica_lokacija,
+        (c.tracking_latitude IS NOT NULL AND c.tracking_longitude IS NOT NULL) AS tracking_supported
+      FROM mjesto m
+      JOIN citaonica c ON c.id = m.citaonica_id
+      WHERE c.status = 'active'
+        AND m.status = 'active'
+        AND ($1::INTEGER IS NULL OR m.citaonica_id = $1)
+      ORDER BY c.naziv ASC, m.broj_mjesta ASC
       `
+      ,
+      [selectedRoomId]
     );
 
     const zauzeta = await pool.query(
@@ -390,9 +568,13 @@ const getCitaonaData = async (req, res) => {
         r.last_distance_meters,
         r.auto_cancelled_at,
         r.cancellation_reason,
-        m.broj_mjesta
+        m.broj_mjesta,
+        c.id AS citaonica_id,
+        c.naziv AS citaonica_naziv,
+        c.lokacija AS citaonica_lokacija
       FROM rezervacija r
       JOIN mjesto m ON m.id = r.mjesto_id
+      JOIN citaonica c ON c.id = m.citaonica_id
       WHERE r.user_id = $1
       AND r.status IN ('pending', 'active')
       ORDER BY r.datum DESC, r.vrijeme_od DESC
@@ -418,13 +600,27 @@ const getCitaonaData = async (req, res) => {
         r.last_distance_meters,
         r.auto_cancelled_at,
         r.cancellation_reason,
-        m.broj_mjesta
+        m.broj_mjesta,
+        c.id AS citaonica_id,
+        c.naziv AS citaonica_naziv,
+        c.lokacija AS citaonica_lokacija
       FROM rezervacija r
       JOIN mjesto m ON m.id = r.mjesto_id
+      JOIN citaonica c ON c.id = m.citaonica_id
       WHERE r.user_id = $1
       ORDER BY r.datum DESC, r.vrijeme_od DESC, r.created_at DESC
       `,
       [req.user.id]
+    );
+
+    const obavjestenja = await pool.query(
+      `
+      SELECT id, naslov, opis, kategorija, datum_vrijeme
+      FROM obavjestenje
+      WHERE modul = 'citaona'
+      ORDER BY datum_vrijeme DESC
+      LIMIT 5
+      `
     );
 
     const zauzetaIds = zauzeta.rows.map((item) => item.mjesto_id);
@@ -435,14 +631,20 @@ const getCitaonaData = async (req, res) => {
     }));
 
     res.json({
+      citaonice: visibleRooms,
+      selected_citaonica_id: selectedRoomId,
       mjesta: mappedMjesta,
       rezervacije: mojeRezervacije.rows.map(mapReservation),
       istorija: istorija.rows.map(mapReservation),
+      obavjestenja: obavjestenja.rows,
       vrijeme_do: effectiveVrijemeDo,
       radi: isWorkingTime(datum, effectiveVrijemeOd, effectiveVrijemeDo),
       tracking: {
         enabled_by_preference: trackingEnabled,
-        address: CITAONA_LOCATION.address,
+        address:
+          selectedRoom?.lokacija ||
+          visibleRooms[0]?.lokacija ||
+          CITAONA_LOCATION.address,
         radius_meters: CITAONA_LOCATION.radiusMeters,
         grace_minutes: CITAONA_LOCATION.graceMinutes,
         reservation_mode: trackingEnabled ? "daily_tracking" : "standard",
@@ -477,7 +679,18 @@ const createReservation = async (req, res) => {
       return res.status(404).json({ message: "Korisnik nije pronađen." });
     }
 
-    const trackingEnabled = user.location_tracking_consent === true;
+    const seat = await getSeatById(mjesto_id);
+
+    if (!seat || seat.status !== "active") {
+      return res.status(404).json({
+        message: "Izabrano mjesto nije pronađeno ili nije dostupno.",
+      });
+    }
+
+    const trackingEnabled =
+      user.location_tracking_consent === true &&
+      seat.tracking_supported === true;
+
     const reservationWindow = getReservationWindow({
       trackingEnabled,
       datum,
@@ -596,7 +809,7 @@ const createReservation = async (req, res) => {
       rezervacija: mapReservation(result.rows[0]),
       tracking: {
         enabled: trackingEnabled,
-        address: CITAONA_LOCATION.address,
+        address: seat.citaonica_lokacija || CITAONA_LOCATION.address,
         radius_meters: CITAONA_LOCATION.radiusMeters,
         grace_minutes: CITAONA_LOCATION.graceMinutes,
       },
@@ -1043,10 +1256,14 @@ const getAdminReservations = async (req, res) => {
         u.name,
         u.index_number,
         u.profile_image_path AS profile_image_url,
-        m.broj_mjesta
+        m.broj_mjesta,
+        c.id AS citaonica_id,
+        c.naziv AS citaonica_naziv,
+        c.lokacija AS citaonica_lokacija
       FROM rezervacija r
       JOIN users u ON u.id = r.user_id
       JOIN mjesto m ON m.id = r.mjesto_id
+      JOIN citaonica c ON c.id = m.citaonica_id
       ORDER BY r.created_at DESC
       `
     );
@@ -1068,6 +1285,14 @@ const createAdminReservation = async (req, res) => {
 
     if (!datum || !vrijeme_od || !trajanje || !mjesto_id) {
       return res.status(400).json({ message: "Sva polja su obavezna." });
+    }
+
+    const seat = await getSeatById(mjesto_id);
+
+    if (!seat || seat.status !== "active") {
+      return res.status(404).json({
+        message: "Izabrano mjesto nije pronađeno ili nije dostupno.",
+      });
     }
 
     const vrijeme_do = addMinutesToTime(vrijeme_od, Number(trajanje));
@@ -1158,6 +1383,287 @@ const createAdminReservation = async (req, res) => {
   }
 };
 
+const createCitaonica = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const naziv = String(req.body?.naziv || "").trim();
+    const lokacija = String(req.body?.lokacija || "").trim();
+    const brojMjesta = Number.parseInt(req.body?.broj_mjesta, 10);
+
+    if (!naziv || !lokacija || !Number.isFinite(brojMjesta)) {
+      return res.status(400).json({
+        message: "Naziv, lokacija i broj mjesta su obavezni.",
+      });
+    }
+
+    if (brojMjesta < 1 || brojMjesta > 500) {
+      return res.status(400).json({
+        message: "Broj mjesta mora biti između 1 i 500.",
+      });
+    }
+
+    await client.query("BEGIN");
+
+    const existing = await client.query(
+      `
+      SELECT id
+      FROM citaonica
+      WHERE LOWER(naziv) = LOWER($1)
+      LIMIT 1
+      `,
+      [naziv]
+    );
+
+    if (existing.rows[0]) {
+      await client.query("ROLLBACK");
+      return res.status(409).json({
+        message: "Čitaonica sa ovim nazivom već postoji.",
+      });
+    }
+
+    const createdRoom = await client.query(
+      `
+      INSERT INTO citaonica (naziv, lokacija, broj_mjesta)
+      VALUES ($1, $2, $3)
+      RETURNING id, naziv, lokacija, broj_mjesta, status, created_at
+      `,
+      [naziv, lokacija, brojMjesta]
+    );
+
+    await client.query(
+      `
+      INSERT INTO mjesto (broj_mjesta, status, citaonica_id)
+      SELECT seat_number, 'active', $1
+      FROM generate_series(1, $2::INTEGER) AS seat_number
+      `,
+      [createdRoom.rows[0].id, brojMjesta]
+    );
+
+    await client.query("COMMIT");
+
+    res.status(201).json({
+      message: "Nova čitaonica je uspješno dodata.",
+      citaonica: {
+        ...createdRoom.rows[0],
+        tracking_supported: false,
+      },
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    res.status(500).json({
+      message: "Greška pri dodavanju čitaonice.",
+      error: error.message,
+    });
+  } finally {
+    client.release();
+  }
+};
+
+const deleteCitaonica = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const roomId = Number.parseInt(req.params.id, 10);
+
+    if (!Number.isFinite(roomId) || roomId < 1) {
+      return res.status(400).json({
+        message: "Nevažeći identifikator čitaonice.",
+      });
+    }
+
+    await client.query("BEGIN");
+
+    const roomResult = await client.query(
+      `
+      SELECT id, naziv, status
+      FROM citaonica
+      WHERE id = $1
+      LIMIT 1
+      `,
+      [roomId]
+    );
+
+    const room = roomResult.rows[0];
+
+    if (!room || room.status !== "active") {
+      await client.query("ROLLBACK");
+      return res.status(404).json({
+        message: "Čitaonica nije pronađena ili je već obrisana.",
+      });
+    }
+
+    const activeReservations = await client.query(
+      `
+      SELECT COUNT(*)::INTEGER AS total
+      FROM rezervacija r
+      JOIN mjesto m ON m.id = r.mjesto_id
+      WHERE m.citaonica_id = $1
+        AND r.status IN ('pending', 'active')
+      `,
+      [roomId]
+    );
+
+    if ((activeReservations.rows[0]?.total || 0) > 0) {
+      await client.query("ROLLBACK");
+      return res.status(409).json({
+        message:
+          "Čitaonica se ne može obrisati dok postoje aktivne ili čekajuće rezervacije.",
+      });
+    }
+
+    await client.query(
+      `
+      UPDATE citaonica
+      SET status = 'inactive',
+          updated_at = NOW()
+      WHERE id = $1
+      `,
+      [roomId]
+    );
+
+    await client.query(
+      `
+      UPDATE mjesto
+      SET status = 'inactive'
+      WHERE citaonica_id = $1
+      `,
+      [roomId]
+    );
+
+    await client.query("COMMIT");
+
+    res.json({
+      message: `Čitaonica "${room.naziv}" je uspješno obrisana.`,
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    res.status(500).json({
+      message: "Greška pri brisanju čitaonice.",
+      error: error.message,
+    });
+  } finally {
+    client.release();
+  }
+};
+
+const deleteCitaonicaV2 = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const roomId = Number.parseInt(req.params.id, 10);
+
+    if (!Number.isFinite(roomId) || roomId < 1) {
+      return res.status(400).json({
+        message: "NevaÅ¾eÄ‡i identifikator Äitaonice.",
+      });
+    }
+
+    await client.query("BEGIN");
+
+    const roomResult = await client.query(
+      `
+      SELECT id, naziv, status
+      FROM citaonica
+      WHERE id = $1
+      LIMIT 1
+      `,
+      [roomId]
+    );
+
+    const room = roomResult.rows[0];
+
+    if (!room || room.status !== "active") {
+      await client.query("ROLLBACK");
+      return res.status(404).json({
+        message: "ÄŒitaonica nije pronaÄ‘ena ili je veÄ‡ obrisana.",
+      });
+    }
+
+    const activeReservations = await client.query(
+      `
+      SELECT r.id, r.user_id
+      FROM rezervacija r
+      JOIN mjesto m ON m.id = r.mjesto_id
+      WHERE m.citaonica_id = $1
+        AND r.status IN ('pending', 'active')
+      `,
+      [roomId]
+    );
+
+    const affectedUserIds = Array.from(
+      new Set(
+        activeReservations.rows
+          .map((reservation) => reservation.user_id)
+          .filter(Boolean)
+      )
+    );
+
+    if (activeReservations.rows.length > 0) {
+      await client.query(
+        `
+        UPDATE rezervacija r
+        SET status = 'cancelled',
+            cancellation_reason = 'room_deleted_by_admin',
+            auto_cancelled_at = COALESCE(r.auto_cancelled_at, NOW())
+        FROM mjesto m
+        WHERE r.mjesto_id = m.id
+          AND m.citaonica_id = $1
+          AND r.status IN ('pending', 'active')
+        `,
+        [roomId]
+      );
+    }
+
+    await client.query(
+      `
+      UPDATE citaonica
+      SET status = 'inactive',
+          updated_at = NOW()
+      WHERE id = $1
+      `,
+      [roomId]
+    );
+
+    await client.query(
+      `
+      UPDATE mjesto
+      SET status = 'inactive'
+      WHERE citaonica_id = $1
+      `,
+      [roomId]
+    );
+
+    await client.query("COMMIT");
+
+    if (affectedUserIds.length > 0) {
+      try {
+        await sendCitaonaRoomDeletedNotification(affectedUserIds, room.naziv);
+      } catch (pushError) {
+        console.error(
+          "Greska pri slanju push obavjestenja za obrisanu citaonicu:",
+          pushError.message
+        );
+      }
+    }
+
+    res.json({
+      message:
+        activeReservations.rows.length > 0
+          ? `ÄŒitaonica "${room.naziv}" je uspjeÅ¡no obrisana. Otkazano rezervacija: ${activeReservations.rows.length}.`
+          : `ÄŒitaonica "${room.naziv}" je uspjeÅ¡no obrisana.`,
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    res.status(500).json({
+      message: "GreÅ¡ka pri brisanju Äitaonice.",
+      error: error.message,
+    });
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
   getCitaonaData,
   createReservation,
@@ -1169,4 +1675,6 @@ module.exports = {
   receiveTrackingPing,
   getAdminReservations,
   createAdminReservation,
+  createCitaonica,
+  deleteCitaonica: deleteCitaonicaV2,
 };

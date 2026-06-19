@@ -16,10 +16,10 @@ const adminRoutes = require("./routes/adminRoutes");
 const app = express();
 
 const allowedOrigins = [
-  /^http:\/\/localhost:5173$/,
-  /^http:\/\/127\.0\.0\.1:5173$/,
-  /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:5173$/,
-  /^http:\/\/172\.16\.\d{1,3}\.\d{1,3}:5173$/,
+  /^http:\/\/localhost:517[34]$/,
+  /^http:\/\/127\.0\.0\.1:517[34]$/,
+  /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:517[34]$/,
+  /^http:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}:517[34]$/,
 ];
 
 app.use(cors({

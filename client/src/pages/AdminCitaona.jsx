@@ -8,6 +8,7 @@ import {
   MapPin,
   Radar,
   Search,
+  Trash2,
   User,
   XCircle,
 } from "lucide-react";
@@ -29,10 +30,43 @@ const durations = [
   { label: "5h", value: 300 },
 ];
 
+function decodeMojibake(value) {
+  if (typeof value !== "string" || !value) {
+    return value || "";
+  }
+
+  let result = value;
+
+  for (let index = 0; index < 2; index += 1) {
+    if (!/[ÃÄÅ]/.test(result)) {
+      break;
+    }
+
+    try {
+      const decoded = decodeURIComponent(escape(result));
+
+      if (!decoded || decoded === result) {
+        break;
+      }
+
+      result = decoded;
+    } catch {
+      break;
+    }
+  }
+
+  return result;
+}
+
+function apiMessage(value, fallback) {
+  return decodeMojibake(value) || fallback;
+}
+
 function AdminCitaona() {
   const [kod, setKod] = useState("");
   const [search, setSearch] = useState("");
   const [rezervacije, setRezervacije] = useState([]);
+  const [citaonice, setCitaonice] = useState([]);
 
   const [datum, setDatum] = useState(getTodayISO());
   const [vrijemeOd, setVrijemeOd] = useState("07:00");
@@ -42,16 +76,24 @@ function AdminCitaona() {
   const [selectedSeat, setSelectedSeat] = useState(null);
   const [radi, setRadi] = useState(true);
   const [adminNote, setAdminNote] = useState("");
+  const [novaCitaonica, setNovaCitaonica] = useState({
+    naziv: "",
+    lokacija: "",
+    broj_mjesta: "",
+  });
+  const [savingRoom, setSavingRoom] = useState(false);
 
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState("");
 
   const allowedDates = useMemo(() => [getTodayISO(), getTomorrowISO()], []);
 
-  const selectedSeatLabel = useMemo(
-    () => mjesta.find((item) => item.id === selectedSeat)?.broj_mjesta ?? null,
+  const selectedSeatData = useMemo(
+    () => mjesta.find((item) => item.id === selectedSeat) ?? null,
     [mjesta, selectedSeat]
   );
+  const selectedSeatLabel = selectedSeatData?.broj_mjesta ?? null;
+  const groupedSeats = useMemo(() => groupSeatsByRoom(mjesta, citaonice), [mjesta, citaonice]);
 
   const trackingSummary = useMemo(() => {
     const tracked = rezervacije.filter(
@@ -89,7 +131,8 @@ function AdminCitaona() {
         item.name?.toLowerCase().includes(value) ||
         item.index_number?.toLowerCase().includes(value) ||
         item.kod?.toLowerCase().includes(value) ||
-        item.admin_note?.toLowerCase().includes(value)
+        item.admin_note?.toLowerCase().includes(value) ||
+        item.citaonica_naziv?.toLowerCase().includes(value)
       );
     });
   }, [rezervacije, search]);
@@ -99,9 +142,7 @@ function AdminCitaona() {
       const res = await api.get("/citaona/admin/rezervacije");
       setRezervacije(res.data.rezervacije || []);
     } catch (error) {
-      setMessage(
-        error.response?.data?.message || "Greška pri učitavanju rezervacija."
-      );
+      setMessage(apiMessage(error.response?.data?.message, "Greška pri učitavanju rezervacija."));
     }
   };
 
@@ -111,14 +152,70 @@ function AdminCitaona() {
         `/citaona?datum=${datum}&vrijeme_od=${vrijemeOd}&trajanje=${trajanje}`
       );
 
+      setCitaonice(res.data.citaonice || []);
       setMjesta(res.data.mjesta || []);
       setVrijemeDo(res.data.vrijeme_do || "");
       setRadi(res.data.radi);
       setSelectedSeat(null);
     } catch (error) {
-      setMessage(
-        error.response?.data?.message || "Greška pri učitavanju mjesta."
+      setMessage(apiMessage(error.response?.data?.message, "Greška pri učitavanju mjesta."));
+    }
+  };
+
+  const createRoom = async () => {
+    if (
+      !novaCitaonica.naziv.trim() ||
+      !novaCitaonica.lokacija.trim() ||
+      !novaCitaonica.broj_mjesta.trim()
+    ) {
+      setMessage("Unesi naziv, lokaciju i broj mjesta za novu čitaonicu.");
+      return;
+    }
+
+    try {
+      setSavingRoom(true);
+      setMessage("");
+      setSuccess("");
+
+      const res = await api.post("/citaona/admin/citaonice", {
+        naziv: novaCitaonica.naziv.trim(),
+        lokacija: novaCitaonica.lokacija.trim(),
+        broj_mjesta: Number(novaCitaonica.broj_mjesta) || 0,
+      });
+
+      setSuccess(apiMessage(res.data.message, "Nova čitaonica je uspješno dodata."));
+      setNovaCitaonica({
+        naziv: "",
+        lokacija: "",
+        broj_mjesta: "",
+      });
+      await refreshSeats();
+    } catch (error) {
+      setMessage(apiMessage(error.response?.data?.message, "Greška pri dodavanju nove čitaonice."));
+    } finally {
+      setSavingRoom(false);
+    }
+  };
+
+  const deleteRoom = async (room) => {
+    if (!window.confirm(`Obrisati čitaonicu "${room.naziv}"?`)) {
+      return;
+    }
+
+    try {
+      setMessage("");
+      setSuccess("");
+
+      const res = await api.delete(`/citaona/admin/citaonice/${room.id}`);
+      setSuccess(
+        apiMessage(
+          res.data.message,
+          `Čitaonica "${room.naziv}" je uspješno obrisana.`
+        )
       );
+      await Promise.all([refreshSeats(), refreshReservations()]);
+    } catch (error) {
+      setMessage(apiMessage(error.response?.data?.message, "Greška pri brisanju čitaonice."));
     }
   };
 
@@ -150,14 +247,12 @@ function AdminCitaona() {
         kod: kod.trim().toUpperCase(),
       });
 
-      setSuccess(res.data.message);
+      setSuccess(apiMessage(res.data.message, "Rezervacija je potvrđena."));
       setKod("");
       refreshReservations();
       refreshSeats();
     } catch (error) {
-      setMessage(
-        error.response?.data?.message || "Greška pri potvrdi rezervacije."
-      );
+      setMessage(apiMessage(error.response?.data?.message, "Greška pri potvrdi rezervacije."));
     }
   };
 
@@ -179,14 +274,12 @@ function AdminCitaona() {
         admin_note: adminNote || "Student bez prethodne rezervacije",
       });
 
-      setSuccess(res.data.message);
+      setSuccess(apiMessage(res.data.message, "Mjesto je uspješno zauzeto od strane admina."));
       setAdminNote("");
       refreshReservations();
       refreshSeats();
     } catch (error) {
-      setMessage(
-        error.response?.data?.message || "Greška pri zauzimanju mjesta."
-      );
+      setMessage(apiMessage(error.response?.data?.message, "Greška pri zauzimanju mjesta."));
     }
   };
 
@@ -244,6 +337,142 @@ function AdminCitaona() {
             label="Aktivna lokacijska kontrola"
             value={`${trackingSummary.monitored}`}
           />
+        </div>
+      </section>
+
+      <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0b3a8f]/10 text-[#0b3a8f]">
+            <MapPin size={22} />
+          </div>
+
+          <div className="min-w-0">
+            <h2 className="text-xl font-bold text-[#10243A] md:text-2xl">
+              Dodaj novu čitaonicu
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Unesi ime, lokaciju i broj mjesta za novu čitaonicu.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <Field label="Naziv">
+            <input
+              value={novaCitaonica.naziv}
+              onChange={(e) =>
+                setNovaCitaonica((current) => ({
+                  ...current,
+                  naziv: e.target.value,
+                }))
+              }
+              placeholder="Na primjer Tehnička čitaonica"
+              className="h-12 w-full rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] px-4 text-sm font-semibold outline-none focus:border-[#0b3a8f]"
+            />
+          </Field>
+
+          <Field label="Lokacija">
+            <input
+              value={novaCitaonica.lokacija}
+              onChange={(e) =>
+                setNovaCitaonica((current) => ({
+                  ...current,
+                  lokacija: e.target.value,
+                }))
+              }
+              placeholder="Zgrada, sprat ili adresa"
+              className="h-12 w-full rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] px-4 text-sm font-semibold outline-none focus:border-[#0b3a8f]"
+            />
+          </Field>
+
+          <Field label="Broj mjesta">
+            <input
+              type="number"
+              min="1"
+              value={novaCitaonica.broj_mjesta}
+              onChange={(e) =>
+                setNovaCitaonica((current) => ({
+                  ...current,
+                  broj_mjesta: e.target.value,
+                }))
+              }
+              placeholder="20"
+              className="h-12 w-full rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] px-4 text-sm font-semibold outline-none focus:border-[#0b3a8f]"
+            />
+          </Field>
+        </div>
+
+        <div className="mt-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <button
+            type="button"
+            onClick={createRoom}
+            disabled={savingRoom}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#0b3a8f] px-6 text-sm font-bold text-white transition hover:bg-[#082d70] disabled:cursor-not-allowed disabled:bg-slate-300 md:w-auto"
+          >
+            <MapPin size={18} />
+            {savingRoom ? "Dodavanje..." : "Dodaj čitaonicu"}
+          </button>
+
+          <p className="text-sm font-semibold text-slate-500 md:text-right">
+            U listi ispod vidiš sve aktivne čitaonice i možeš ih obrisati ako
+            više ne postoje.
+          </p>
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
+          {citaonice.length === 0 ? (
+            <div className="rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] p-4 text-sm font-semibold text-slate-500">
+              Trenutno nema aktivnih čitaonica.
+            </div>
+          ) : (
+            citaonice.map((room) => (
+              <article
+                key={room.id}
+                className="rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-lg font-bold text-[#10243A]">
+                      {room.naziv}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {room.lokacija}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => deleteRoom(room)}
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-500 transition hover:bg-red-100"
+                    title={`Obriši čitaonicu ${room.naziv}`}
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl border border-[#dbe4f0] bg-white p-3">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                      Broj mjesta
+                    </p>
+                    <p className="mt-1 text-base font-bold text-[#10243A]">
+                      {room.broj_mjesta}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-[#dbe4f0] bg-white p-3">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                      Slobodna mjesta
+                    </p>
+                    <p className="mt-1 text-base font-bold text-emerald-700">
+                      {room.slobodna_mjesta}
+                    </p>
+                  </div>
+                </div>
+              </article>
+            ))
+          )}
         </div>
       </section>
 
@@ -365,29 +594,51 @@ function AdminCitaona() {
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-5 gap-2 sm:grid-cols-6 md:mt-8 md:grid-cols-7 lg:grid-cols-8 xl:grid-cols-10">
-          {mjesta.map((mjesto) => {
-            const unavailable = mjesto.zauzeto || mjesto.status !== "active";
-            const selected = selectedSeat === mjesto.id;
+        <div className="mt-6 space-y-5">
+          {groupedSeats.map((room) => (
+            <div
+              key={room.id}
+              className="rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] p-4"
+            >
+              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                <div className="min-w-0">
+                  <h3 className="text-lg font-bold text-[#10243A]">{room.naziv}</h3>
+                  <p className="text-sm text-slate-500">
+                    {room.lokacija} • {room.slobodna} slobodno od {room.ukupno} mjesta
+                  </p>
+                </div>
 
-            return (
-              <button
-                key={mjesto.id}
-                type="button"
-                disabled={unavailable || !radi}
-                onClick={() => setSelectedSeat(mjesto.id)}
-                className={`relative flex h-[58px] w-full items-center justify-center rounded-[14px] border text-base font-black transition-all duration-200 sm:h-[62px] md:h-[68px] md:rounded-[18px] md:text-lg ${
-                  unavailable
-                    ? "cursor-not-allowed border-red-200 bg-red-50 text-red-500"
-                    : selected
-                    ? "scale-105 border-emerald-600 bg-emerald-600 text-white shadow-[0_12px_25px_rgba(5,150,105,0.28)]"
-                    : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:scale-105 hover:bg-emerald-100"
-                }`}
-              >
-                {mjesto.broj_mjesta}
-              </button>
-            );
-          })}
+                <span className="inline-flex w-fit rounded-full bg-[#0b3a8f]/10 px-3 py-1 text-xs font-bold text-[#0b3a8f]">
+                  {room.ukupno} mjesta
+                </span>
+              </div>
+
+              <div className="mt-4 grid grid-cols-5 gap-2 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-8 xl:grid-cols-10">
+                {room.mjesta.map((mjesto) => {
+                  const unavailable = mjesto.zauzeto || mjesto.status !== "active";
+                  const selected = selectedSeat === mjesto.id;
+
+                  return (
+                    <button
+                      key={mjesto.id}
+                      type="button"
+                      disabled={unavailable || !radi}
+                      onClick={() => setSelectedSeat(mjesto.id)}
+                      className={`relative flex h-[58px] w-full items-center justify-center rounded-[14px] border text-base font-black transition-all duration-200 sm:h-[62px] md:h-[68px] md:rounded-[18px] md:text-lg ${
+                        unavailable
+                          ? "cursor-not-allowed border-red-200 bg-red-50 text-red-500"
+                          : selected
+                          ? "scale-105 border-emerald-600 bg-emerald-600 text-white shadow-[0_12px_25px_rgba(5,150,105,0.28)]"
+                          : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:scale-105 hover:bg-emerald-100"
+                      }`}
+                    >
+                      {mjesto.broj_mjesta}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
 
         <div className="mt-7 rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] p-4">
@@ -397,7 +648,11 @@ function AdminCitaona() {
 
           <p className="mt-1 text-sm text-slate-500">
             {selectedSeatLabel
-              ? `Odabrano mjesto ${selectedSeatLabel}. Dodaj napomenu ili ime studenta.`
+              ? `Odabrano mjesto ${selectedSeatLabel}${
+                  selectedSeatData?.citaonica_naziv
+                    ? ` u čitaonici ${selectedSeatData.citaonica_naziv}`
+                    : ""
+                }. Dodaj napomenu ili ime studenta.`
               : "Odaberi slobodno mjesto i dodaj napomenu ili ime studenta."}
           </p>
 
@@ -492,6 +747,7 @@ function AdminCitaona() {
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-3">
+                  <ReservationMeta label="Čitaonica" value={item.citaonica_naziv} />
                   <ReservationMeta label="Mjesto" value={item.broj_mjesta} />
                   <ReservationMeta label="Kod" value={item.kod} />
                   <ReservationMeta label="Datum" value={formatDate(item.datum)} />
@@ -509,8 +765,9 @@ function AdminCitaona() {
 
         <div className="mt-6 hidden overflow-x-auto rounded-2xl border border-[#dbe4f0] md:block">
           <div className="min-w-[1180px]">
-            <div className="grid grid-cols-[1.3fr_0.8fr_0.8fr_0.9fr_1.2fr_1.4fr_1fr] bg-[#F8FBFF]">
+            <div className="grid grid-cols-[1.3fr_1fr_0.8fr_0.8fr_0.9fr_1.2fr_1.4fr_1fr] bg-[#F8FBFF]">
               <Head text="Student/Napomena" />
+              <Head text="Čitaonica" />
               <Head text="Mjesto" />
               <Head text="Kod" />
               <Head text="Datum" />
@@ -525,11 +782,13 @@ function AdminCitaona() {
               filteredReservations.map((item) => (
                 <div
                   key={item.id}
-                  className="grid grid-cols-[1.3fr_0.8fr_0.8fr_0.9fr_1.2fr_1.4fr_1fr] border-t border-[#dbe4f0] bg-white"
+                  className="grid grid-cols-[1.3fr_1fr_0.8fr_0.8fr_0.9fr_1.2fr_1.4fr_1fr] border-t border-[#dbe4f0] bg-white"
                 >
                   <Cell>
                     <ReservationUser item={item} compact />
                   </Cell>
+
+                  <Cell>{item.citaonica_naziv || "-"}</Cell>
 
                   <Cell>
                     <span className="rounded-full bg-[#0b3a8f]/10 px-3 py-1 text-xs font-bold text-[#0b3a8f]">
@@ -1040,7 +1299,37 @@ function formatCancellationReason(reason) {
   if (reason === "outside_radius_timeout") return "Van radijusa duže od 60 min";
   if (reason === "cancelled_by_user") return "Otkazao student";
 
+  if (reason === "room_deleted_by_admin") return "Čitaonica obrisana od strane admina";
   return reason;
+}
+
+function groupSeatsByRoom(seats, rooms) {
+  const roomMeta = new Map((rooms || []).map((room) => [room.id, room]));
+  const grouped = new Map();
+
+  for (const seat of seats || []) {
+    const roomId = seat.citaonica_id || 0;
+    const room = roomMeta.get(roomId);
+    const current =
+      grouped.get(roomId) || {
+        id: roomId,
+        naziv: seat.citaonica_naziv || room?.naziv || "Čitaonica",
+        lokacija:
+          seat.citaonica_lokacija || room?.lokacija || "Lokacija nije unesena",
+        ukupno: 0,
+        slobodna: 0,
+        mjesta: [],
+      };
+
+    current.ukupno += 1;
+    current.slobodna += seat.zauzeto ? 0 : 1;
+    current.mjesta.push(seat);
+    grouped.set(roomId, current);
+  }
+
+  return Array.from(grouped.values()).sort((first, second) =>
+    first.naziv.localeCompare(second.naziv)
+  );
 }
 
 export default AdminCitaona;

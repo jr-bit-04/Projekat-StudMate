@@ -24,4 +24,5 @@ npm run start
 - Za lokalni telefon koristi LAN adresu racunara, ne `localhost`
 - Ova faza pokriva skeleton, auth i navigaciju
 - Push notifikacije traze validan `EXPO_PUBLIC_EAS_PROJECT_ID`
+- Remote push na Androidu ne radi u Expo Go za novije Expo SDK verzije, pa za testiranje moras koristiti development build aplikacije
 - Background tracking za citaonicu je zapocet kroz foreground polling i dalje se moze siriti za full background build

@@ -35,10 +35,12 @@ function Citaona() {
   const [datum, setDatum] = useState(getTodayISO());
   const [vrijemeOd, setVrijemeOd] = useState("07:00");
   const [trajanje, setTrajanje] = useState(60);
+  const [citaonice, setCitaonice] = useState([]);
   const [mjesta, setMjesta] = useState([]);
   const [rezervacije, setRezervacije] = useState([]);
   const [istorija, setIstorija] = useState([]);
   const [selectedSeat, setSelectedSeat] = useState(null);
+  const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [vrijemeDo, setVrijemeDo] = useState("");
   const [radi, setRadi] = useState(true);
   const [message, setMessage] = useState("");
@@ -54,6 +56,10 @@ function Citaona() {
   });
 
   const allowedDates = useMemo(() => [getTodayISO(), getTomorrowISO()], []);
+  const selectedRoom = useMemo(
+    () => citaonice.find((item) => item.id === selectedRoomId) || null,
+    [citaonice, selectedRoomId]
+  );
 
   const minTime = useMemo(() => {
     if (datum !== getTodayISO()) return undefined;
@@ -66,7 +72,7 @@ function Citaona() {
 
   useEffect(() => {
     fetchCitaona();
-  }, [datum, vrijemeOd, trajanje]);
+  }, [datum, selectedRoomId, vrijemeOd, trajanje]);
 
   useEffect(() => {
     const handleTrackingUpdate = () => {
@@ -81,17 +87,31 @@ function Citaona() {
         handleTrackingUpdate
       );
     };
-  }, [datum, vrijemeOd, trajanje]);
+  }, [datum, selectedRoomId, vrijemeOd, trajanje]);
 
   const fetchCitaona = async () => {
     try {
       setMessage("");
       setSuccess("");
 
+      const roomQuery = selectedRoomId ? `&citaonica_id=${selectedRoomId}` : "";
+
       const res = await api.get(
-        `/citaona?datum=${datum}&vrijeme_od=${vrijemeOd}&trajanje=${trajanje}`
+        `/citaona?datum=${datum}&vrijeme_od=${vrijemeOd}&trajanje=${trajanje}${roomQuery}`
       );
 
+      const nextRooms = res.data.citaonice || [];
+      const nextSelectedRoomId =
+        res.data.selected_citaonica_id || nextRooms[0]?.id || null;
+
+      setCitaonice(nextRooms);
+      setSelectedRoomId((current) => {
+        if (current && nextRooms.some((room) => room.id === current)) {
+          return current;
+        }
+
+        return nextSelectedRoomId;
+      });
       setMjesta(res.data.mjesta || []);
       setRezervacije(res.data.rezervacije || []);
       setIstorija(res.data.istorija || []);
@@ -116,6 +136,11 @@ function Citaona() {
   };
 
   const reserveSeat = async () => {
+    if (!selectedRoomId) {
+      setMessage("Prvo izaberi čitaonicu.");
+      return;
+    }
+
     if (!selectedSeat) {
       setMessage("Prvo izaberi slobodno mjesto.");
       return;
@@ -209,27 +234,31 @@ function Citaona() {
     : vrijemeDo || "-";
   const noTrackingWindow =
     isDailyTrackingMode && !tracking.reservation_window;
-  const reserveDisabled = !radi || noTrackingWindow;
+  const reserveDisabled = !radi || noTrackingWindow || !selectedRoomId;
 
   return (
     <MainLayout>
       <PageHero
         eyebrow="ČITAONICA"
-        title="Centralna univerzitetska biblioteka"
-        description="Rezervacija mjesta u čitaonici za danas ili sjutra."
+        title={selectedRoom?.naziv || "Univerzitetska čitaonica"}
+        description="Prvo izaberi čitaonicu, pa zatim termin i mjesto za rezervaciju."
         image={citaonaHero}
         imageAlt="Unutrašnjost čitaonice"
         theme="slate"
         highlights={[
-          { icon: DoorOpen, label: "30 mjesta" },
+          { icon: DoorOpen, label: `${selectedRoom?.broj_mjesta || mjesta.length || 0} mjesta` },
           { icon: Clock3, label: "Radno vrijeme" },
-          { icon: MapPin, label: "2 Cetinjski Put" },
+          { icon: MapPin, label: selectedRoom?.lokacija || tracking.address },
         ]}
       />
 
       <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-          <InfoMini icon={DoorOpen} label="Kapacitet" value="30 mjesta" />
+          <InfoMini
+            icon={DoorOpen}
+            label="Kapacitet"
+            value={`${selectedRoom?.broj_mjesta || mjesta.length || 0} mjesta`}
+          />
           <InfoMini icon={Clock3} label="Radnim danima" value="07:00-21:00" />
           <InfoMini
             icon={CalendarDays}
@@ -245,9 +274,102 @@ function Citaona() {
           <InfoMini
             icon={MapPin}
             label="Lokacija"
-            value={tracking.address}
+            value={selectedRoom?.lokacija || tracking.address}
           />
         </div>
+      </section>
+
+      <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0b3a8f]/10 text-[#0b3a8f]">
+            <MapPin size={22} />
+          </div>
+
+          <div className="min-w-0">
+            <h2 className="text-xl md:text-2xl font-bold text-[#10243A]">
+              Izaberi čitaonicu
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Odaberi čitaonicu u kojoj želiš da rezervišeš mjesto.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {citaonice.map((room) => {
+            const selected = selectedRoomId === room.id;
+
+            return (
+              <label
+                key={room.id}
+                className={`cursor-pointer rounded-2xl border p-4 transition ${
+                  selected
+                    ? "border-[#0b3a8f] bg-[#EEF4FF] shadow-[0_12px_25px_rgba(11,58,143,0.08)]"
+                    : "border-[#dbe4f0] bg-[#F8FBFF] hover:border-[#0b3a8f]/40"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="citaonica"
+                  value={room.id}
+                  checked={selected}
+                  onChange={() => setSelectedRoomId(room.id)}
+                  className="sr-only"
+                />
+
+                <div className="flex items-start gap-3">
+                  <span
+                    className={`mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
+                      selected
+                        ? "border-[#0b3a8f] bg-[#0b3a8f]"
+                        : "border-slate-300 bg-white"
+                    }`}
+                  >
+                    <span
+                      className={`h-2 w-2 rounded-full bg-white ${
+                        selected ? "opacity-100" : "opacity-0"
+                      }`}
+                    />
+                  </span>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-lg font-bold text-[#10243A]">
+                          {room.naziv}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {room.lokacija}
+                        </p>
+                      </div>
+
+                      <span className="rounded-full bg-[#0b3a8f]/10 px-3 py-1 text-xs font-bold text-[#0b3a8f]">
+                        {room.broj_mjesta} mjesta
+                      </span>
+                    </div>
+
+                    <div className="mt-4 text-sm font-semibold text-slate-600">
+                      Slobodno {room.slobodna_mjesta} od {room.broj_mjesta}
+                    </div>
+
+                    {selected && (
+                      <div className="mt-3 text-xs font-bold uppercase tracking-[0.12em] text-[#0b3a8f]">
+                        Odabrana čitaonica
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+
+        {citaonice.length === 0 && (
+          <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-800">
+            Trenutno nema aktivnih čitaonica za rezervaciju.
+          </div>
+        )}
       </section>
 
       <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6">
@@ -346,7 +468,9 @@ function Citaona() {
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0">
             <h2 className="text-xl md:text-[30px] font-black tracking-[-0.03em] text-[#10243A]">
-              Odaberi mjesto u čitaonici
+              {selectedRoom?.naziv
+                ? `Mjesta u čitaonici ${selectedRoom.naziv}`
+                : "Odaberi mjesto u čitaonici"}
             </h2>
 
             <p className="mt-2 break-words text-sm leading-6 text-slate-500 md:text-[15px]">
@@ -476,6 +600,7 @@ function Citaona() {
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-3">
+                  <ReservationMeta label="Čitaonica" value={item.citaonica_naziv} />
                   <ReservationMeta label="Mjesto" value={item.broj_mjesta} />
                   <ReservationMeta label="Datum" value={formatDate(item.datum)} />
                   <ReservationMeta
@@ -500,8 +625,9 @@ function Citaona() {
 
         <div className="mt-6 hidden overflow-x-auto rounded-2xl border border-[#dbe4f0] md:block">
           <div className="min-w-[820px]">
-            <div className="grid grid-cols-[1fr_1fr_1fr_1.5fr_1fr_1.4fr_90px] bg-[#F8FBFF]">
+            <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1.5fr_1fr_1.4fr_90px] bg-[#F8FBFF]">
               <Head text="Kod" />
+              <Head text="Čitaonica" />
               <Head text="Mjesto" />
               <Head text="Datum" />
               <Head text="Termin" />
@@ -516,7 +642,7 @@ function Citaona() {
               rezervacije.map((item) => (
                 <div
                   key={item.id}
-                  className="grid grid-cols-[1fr_1fr_1fr_1.5fr_1fr_1.4fr_90px] border-t border-[#dbe4f0] bg-white"
+                  className="grid grid-cols-[1fr_1fr_1fr_1fr_1.5fr_1fr_1.4fr_90px] border-t border-[#dbe4f0] bg-white"
                 >
                   <Cell>
                     <span className="rounded-full bg-[#0b3a8f]/10 px-3 py-1 font-bold text-[#0b3a8f]">
@@ -524,6 +650,7 @@ function Citaona() {
                     </span>
                   </Cell>
 
+                  <Cell>{item.citaonica_naziv || "-"}</Cell>
                   <Cell>{item.broj_mjesta}</Cell>
                   <Cell>{formatDate(item.datum)}</Cell>
                   <Cell>
@@ -630,6 +757,7 @@ function Citaona() {
                     </div>
 
                     <div className="mt-4 grid grid-cols-2 gap-3">
+                      <ReservationMeta label="Čitaonica" value={item.citaonica_naziv} />
                       <ReservationMeta label="Mjesto" value={item.broj_mjesta} />
                       <ReservationMeta label="Datum" value={formatDate(item.datum)} />
                       <ReservationMeta
@@ -652,8 +780,9 @@ function Citaona() {
 
             <div className="mt-6 hidden overflow-x-auto rounded-2xl border border-[#dbe4f0] md:block">
               <div className="min-w-[720px]">
-                <div className="grid grid-cols-[1fr_1fr_1fr_1.5fr_1fr_1.4fr] bg-[#F8FBFF]">
+                <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1.5fr_1fr_1.4fr] bg-[#F8FBFF]">
                   <Head text="Kod" />
+                  <Head text="Čitaonica" />
                   <Head text="Mjesto" />
                   <Head text="Datum" />
                   <Head text="Termin" />
@@ -669,7 +798,7 @@ function Citaona() {
                   istorija.map((item) => (
                     <div
                       key={item.id}
-                      className="grid grid-cols-[1fr_1fr_1fr_1.5fr_1fr_1.4fr] border-t border-[#dbe4f0] bg-white"
+                      className="grid grid-cols-[1fr_1fr_1fr_1fr_1.5fr_1fr_1.4fr] border-t border-[#dbe4f0] bg-white"
                     >
                       <Cell>
                         <span className="rounded-full bg-[#0b3a8f]/10 px-3 py-1 font-bold text-[#0b3a8f]">
@@ -677,6 +806,7 @@ function Citaona() {
                         </span>
                       </Cell>
 
+                      <Cell>{item.citaonica_naziv || "-"}</Cell>
                       <Cell>{item.broj_mjesta}</Cell>
                       <Cell>{formatDate(item.datum)}</Cell>
                       <Cell>

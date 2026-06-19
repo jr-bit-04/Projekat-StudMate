@@ -97,8 +97,22 @@ export interface DomObligation {
 export interface CitaonaSeat {
   id: number;
   broj_mjesta: number;
+  citaonica_id?: number | null;
+  citaonica_naziv?: string | null;
+  citaonica_lokacija?: string | null;
+  tracking_supported?: boolean;
   status?: string | null;
   zauzeto?: boolean;
+}
+
+export interface CitaonicaRoom {
+  id: number;
+  naziv: string;
+  lokacija: string;
+  broj_mjesta: number;
+  slobodna_mjesta?: number;
+  zauzeta_mjesta?: number;
+  tracking_supported?: boolean;
 }
 
 export interface CitaonaReservation {
@@ -109,6 +123,9 @@ export interface CitaonaReservation {
   vrijeme_do: string;
   status: string;
   broj_mjesta?: number;
+  citaonica_id?: number | null;
+  citaonica_naziv?: string | null;
+  citaonica_lokacija?: string | null;
   created_at?: string | null;
   checked_in_at?: string | null;
   expires_at?: string | null;
@@ -147,4 +164,3 @@ export interface CitaonaTrackingStatus {
   reservation: CitaonaReservation | null;
   shouldTrack: boolean;
 }
-

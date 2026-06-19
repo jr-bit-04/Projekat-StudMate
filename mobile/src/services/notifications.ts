@@ -24,11 +24,23 @@ function resolveProjectId() {
   );
 }
 
+function isRunningInExpoGo() {
+  return Constants.executionEnvironment === "storeClient";
+}
+
 export async function registerForPushNotificationsAsync() {
   if (!Device.isDevice) {
     return {
       token: null,
       error: "Push notifikacije rade samo na pravom uredjaju.",
+    };
+  }
+
+  if (isRunningInExpoGo()) {
+    return {
+      token: null,
+      error:
+        "Remote push notifikacije ne rade kako treba u Expo Go. Instaliraj development build aplikacije na telefon.",
     };
   }
 
@@ -65,10 +77,20 @@ export async function registerForPushNotificationsAsync() {
     };
   }
 
-  const token = await Notifications.getExpoPushTokenAsync({ projectId });
+  try {
+    const token = await Notifications.getExpoPushTokenAsync({ projectId });
 
-  return {
-    token: token.data,
-    error: null,
-  };
+    return {
+      token: token.data,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      token: null,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Expo push token nije moguce preuzeti.",
+    };
+  }
 }

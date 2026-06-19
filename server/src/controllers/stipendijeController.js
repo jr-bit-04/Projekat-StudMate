@@ -1,50 +1,7 @@
 const pool = require("../config/db");
-const { broadcastPushToStudents } = require("../utils/pushNotifications");
-
-function shouldNotifyStudentsAboutScholarship(konkurs) {
-  if (!konkurs || konkurs.push_notified_at || konkurs.aktivan !== true) {
-    return false;
-  }
-
-  if (!konkurs.rok) {
-    return true;
-  }
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const deadline = new Date(konkurs.rok);
-  deadline.setHours(0, 0, 0, 0);
-
-  return deadline.getTime() >= today.getTime();
-}
-
-async function notifyStudentsAboutScholarship(konkurs) {
-  if (!shouldNotifyStudentsAboutScholarship(konkurs)) {
-    return;
-  }
-
-  await broadcastPushToStudents({
-    title: "Nova stipendija je dostupna",
-    body: `${konkurs.naslov} je upravo objavljena u StudMate aplikaciji.`,
-    data: {
-      type: "scholarship_published",
-      scholarshipId: konkurs.id,
-      institution: konkurs.institucija || null,
-    },
-  });
-
-  await pool.query(
-    `
-    UPDATE stipendija
-    SET push_notified_at = NOW(),
-        updated_at = NOW()
-    WHERE id = $1
-      AND push_notified_at IS NULL
-    `,
-    [konkurs.id]
-  );
-}
+const {
+  notifyStudentsAboutOpportunity,
+} = require("../utils/scholarshipNotifications");
 
 const getStipendije = async (req, res) => {
   try {
@@ -146,7 +103,7 @@ const createStipendija = async (req, res) => {
     });
 
     try {
-      await notifyStudentsAboutScholarship(result.rows[0]);
+      await notifyStudentsAboutOpportunity(result.rows[0]);
     } catch (pushError) {
       console.error(
         "Greska pri slanju push obavjestenja za novi konkurs:",
@@ -222,7 +179,7 @@ const updateStipendija = async (req, res) => {
     });
 
     try {
-      await notifyStudentsAboutScholarship(result.rows[0]);
+      await notifyStudentsAboutOpportunity(result.rows[0]);
     } catch (pushError) {
       console.error(
         "Greska pri slanju push obavjestenja za izmijenjeni konkurs:",

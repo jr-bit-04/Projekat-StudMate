@@ -2,6 +2,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
 import { colors } from "../theme/colors";
 
 interface AppButtonProps {
+  disabled?: boolean;
   label: string;
   loading?: boolean;
   onPress: () => void;
@@ -9,6 +10,7 @@ interface AppButtonProps {
 }
 
 export function AppButton({
+  disabled = false,
   label,
   loading = false,
   onPress,
@@ -16,13 +18,13 @@ export function AppButton({
 }: AppButtonProps) {
   return (
     <Pressable
-      disabled={loading}
+      disabled={loading || disabled}
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
         variant === "primary" ? styles.primaryButton : styles.secondaryButton,
-        pressed && !loading ? styles.pressed : null,
-        loading ? styles.disabled : null,
+        pressed && !loading && !disabled ? styles.pressed : null,
+        loading || disabled ? styles.disabled : null,
       ]}
     >
       {loading ? (

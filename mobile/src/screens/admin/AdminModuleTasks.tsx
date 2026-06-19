@@ -183,12 +183,28 @@ interface CitaonaReservation {
   index_number?: string | null;
   profile_image_url?: string | null;
   broj_mjesta?: number | null;
+  citaonica_id?: number | null;
+  citaonica_naziv?: string | null;
+  citaonica_lokacija?: string | null;
 }
 
 interface CitaonaSeat {
   id: number;
   broj_mjesta: number;
+  citaonica_id?: number | null;
+  citaonica_naziv?: string | null;
+  citaonica_lokacija?: string | null;
   zauzeto?: boolean;
+}
+
+interface CitaonicaRoom {
+  id: number;
+  naziv: string;
+  lokacija: string;
+  broj_mjesta: number;
+  slobodna_mjesta?: number;
+  zauzeta_mjesta?: number;
+  tracking_supported?: boolean;
 }
 
 interface PopustRecord {
@@ -1103,11 +1119,17 @@ function CitaonaAdminPanel({ onChanged, refreshToken }: PanelProps) {
   const [datum, setDatum] = useState(getTodayISO());
   const [vrijemeOd, setVrijemeOd] = useState("07:00");
   const [trajanje, setTrajanje] = useState("60");
+  const [roomName, setRoomName] = useState("");
+  const [roomLocation, setRoomLocation] = useState("");
+  const [roomSeatCount, setRoomSeatCount] = useState("");
   const [adminNote, setAdminNote] = useState("");
+  const [rooms, setRooms] = useState<CitaonicaRoom[]>([]);
   const [seats, setSeats] = useState<CitaonaSeat[]>([]);
   const [selectedSeatId, setSelectedSeatId] = useState<number | null>(null);
   const [loadingSeats, setLoadingSeats] = useState(false);
   const [savingReservation, setSavingReservation] = useState(false);
+  const [savingRoom, setSavingRoom] = useState(false);
+  const [deletingRoomId, setDeletingRoomId] = useState<number | null>(null);
   const [radi, setRadi] = useState(true);
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState("");
@@ -1115,6 +1137,10 @@ function CitaonaAdminPanel({ onChanged, refreshToken }: PanelProps) {
   const selectedSeat = useMemo(
     () => seats.find((seat) => seat.id === selectedSeatId) || null,
     [seats, selectedSeatId]
+  );
+  const groupedSeats = useMemo(
+    () => groupAdminCitaonaSeats(seats, rooms),
+    [rooms, seats]
   );
 
   const loadReservations = useCallback(async () => {
@@ -1139,6 +1165,7 @@ function CitaonaAdminPanel({ onChanged, refreshToken }: PanelProps) {
       setLoadingSeats(true);
       setMessage("");
       const response = await api.get<{
+        citaonice: CitaonicaRoom[];
         mjesta: CitaonaSeat[];
         radi: boolean;
       }>("/citaona", {
@@ -1148,6 +1175,7 @@ function CitaonaAdminPanel({ onChanged, refreshToken }: PanelProps) {
           trajanje: Number(trajanje) || 60,
         },
       });
+      setRooms(response.data.citaonice || []);
       setSeats(response.data.mjesta || []);
       setRadi(response.data.radi !== false);
       setSelectedSeatId(null);
@@ -1184,6 +1212,65 @@ function CitaonaAdminPanel({ onChanged, refreshToken }: PanelProps) {
       setMessage(getApiErrorMessage(error, "Greška pri potvrdi rezervacije."));
     } finally {
       setConfirming(false);
+    }
+  }
+
+  async function createRoom() {
+    if (!roomName.trim() || !roomLocation.trim() || !roomSeatCount.trim()) {
+      setMessage("Unesi naziv, lokaciju i broj mjesta za novu citaonicu.");
+      return;
+    }
+
+    try {
+      setSavingRoom(true);
+      setMessage("");
+      setSuccess("");
+      const response = await api.post("/citaona/admin/citaonice", {
+        naziv: roomName.trim(),
+        lokacija: roomLocation.trim(),
+        broj_mjesta: Number(roomSeatCount) || 0,
+      });
+      setSuccess(response.data?.message || "Nova citaonica je dodata.");
+      setRoomName("");
+      setRoomLocation("");
+      setRoomSeatCount("");
+      await loadSeats();
+      onChanged?.();
+    } catch (error) {
+      setMessage(getApiErrorMessage(error, "Greška pri dodavanju čitaonice."));
+    } finally {
+      setSavingRoom(false);
+    }
+  }
+
+  function confirmDeleteRoom(room: CitaonicaRoom) {
+    Alert.alert(
+      "Obrisi citaonicu",
+      `Da li zelis da obrises citaonicu "${room.naziv}"?`,
+      [
+        { style: "cancel", text: "Nazad" },
+        {
+          style: "destructive",
+          text: "Obrisi",
+          onPress: () => void deleteRoom(room),
+        },
+      ]
+    );
+  }
+
+  async function deleteRoom(room: CitaonicaRoom) {
+    try {
+      setDeletingRoomId(room.id);
+      setMessage("");
+      setSuccess("");
+      const response = await api.delete(`/citaona/admin/citaonice/${room.id}`);
+      setSuccess(response.data?.message || "Citaonica je obrisana.");
+      await Promise.all([loadReservations(), loadSeats()]);
+      onChanged?.();
+    } catch (error) {
+      setMessage(getApiErrorMessage(error, "GreÅ¡ka pri brisanju Äitaonice."));
+    } finally {
+      setDeletingRoomId(null);
     }
   }
 
@@ -1242,9 +1329,90 @@ function CitaonaAdminPanel({ onChanged, refreshToken }: PanelProps) {
       </SectionCard>
 
       <SectionCard
+        right={<InfoBadge value={`${rooms.length} ukupno`} />}
+        subtitle="Dodaj novu čitaonicu sa nazivom, lokacijom i brojem mjesta."
+        title="Nova čitaonica"
+      >
+        <AdminField
+          label="Naziv"
+          onChangeText={setRoomName}
+          placeholder="Na primjer Tehnicki blok"
+          value={roomName}
+        />
+        <AdminField
+          label="Lokacija"
+          onChangeText={setRoomLocation}
+          placeholder="Adresa ili opis lokacije"
+          value={roomLocation}
+        />
+        <AdminField
+          keyboardType="numeric"
+          label="Broj mjesta"
+          onChangeText={setRoomSeatCount}
+          placeholder="20"
+          value={roomSeatCount}
+        />
+        <View style={styles.buttonColumn}>
+          <AppButton
+            label={savingRoom ? "Čuvanje..." : "Dodaj čitaonicu"}
+            loading={savingRoom}
+            onPress={() => void createRoom()}
+          />
+        </View>
+
+        {false && rooms.length > 0 ? (
+          <View style={styles.inlineWrap}>
+            {rooms.map((room) => (
+              <View key={room.id} style={styles.stateChip}>
+                <Text style={styles.stateChipTitle}>{room.naziv}</Text>
+                <Text style={styles.stateChipText}>
+                  {room.lokacija} • {room.broj_mjesta} mjesta
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {rooms.length > 0 ? (
+          <View style={styles.buttonColumn}>
+            {rooms.map((room) => (
+              <View key={`room-list-${room.id}`} style={styles.recordCard}>
+                <View style={styles.recordHeader}>
+                  <View style={styles.recordIdentityText}>
+                    <Text style={styles.recordTitle}>{room.naziv}</Text>
+                    <Text style={styles.recordMeta}>{room.lokacija}</Text>
+                  </View>
+                  <InfoBadge value={`${room.broj_mjesta} mjesta`} />
+                </View>
+                <Text style={styles.recordBody}>
+                  Slobodno {room.slobodna_mjesta ?? room.broj_mjesta} od {room.broj_mjesta} mjesta
+                </Text>
+                <View style={styles.inlineActions}>
+                  <SmallActionButton
+                    danger
+                    disabled={deletingRoomId === room.id}
+                    label={deletingRoomId === room.id ? "Brisanje..." : "Obrisi"}
+                    onPress={() => confirmDeleteRoom(room)}
+                  />
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.emptyText}>
+            Trenutno nema aktivnih citaonica.
+          </Text>
+        )}
+      </SectionCard>
+
+      <SectionCard
         right={
           <InfoBadge
-            value={selectedSeat ? `Mjesto ${selectedSeat.broj_mjesta}` : "Slobodno"}
+            value={
+              selectedSeat
+                ? `${selectedSeat.citaonica_naziv || "Čitaonica"} • ${selectedSeat.broj_mjesta}`
+                : "Slobodno"
+            }
           />
         }
         subtitle="Brzo zauzimanje mjesta iz admin aplikacije."
@@ -1300,42 +1468,56 @@ function CitaonaAdminPanel({ onChanged, refreshToken }: PanelProps) {
           />
         </View>
 
-        <View style={styles.seatGrid}>
-          {seats.map((seat) => {
-            const disabled = seat.zauzeto;
-            const selected = selectedSeatId === seat.id;
-            return (
-              <Pressable
-                key={seat.id}
-                disabled={disabled}
-                onPress={() => setSelectedSeatId(seat.id)}
-                style={({ pressed }) => [
-                  styles.seatCard,
-                  disabled ? styles.seatCardDisabled : null,
-                  selected ? styles.seatCardSelected : null,
-                  pressed && !disabled ? styles.pressed : null,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.seatCardNumber,
-                    selected ? styles.seatCardNumberSelected : null,
-                  ]}
-                >
-                  {seat.broj_mjesta}
+        {groupedSeats.map((group) => (
+          <View key={group.id} style={styles.roomGroupCard}>
+            <View style={styles.recordHeader}>
+              <View style={styles.recordIdentityText}>
+                <Text style={styles.recordTitle}>{group.naziv}</Text>
+                <Text style={styles.recordMeta}>
+                  {group.lokacija} • {group.slobodna_mjesta} slobodno od {group.broj_mjesta}
                 </Text>
-                <Text
-                  style={[
-                    styles.seatCardMeta,
-                    selected ? styles.seatCardMetaSelected : null,
-                  ]}
-                >
-                  {disabled ? "Zauzeto" : selected ? "Odabrano" : "Slobodno"}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+              </View>
+              <InfoBadge value={`${group.broj_mjesta} mjesta`} />
+            </View>
+
+            <View style={styles.seatGrid}>
+              {group.mjesta.map((seat) => {
+                const disabled = seat.zauzeto;
+                const selected = selectedSeatId === seat.id;
+                return (
+                  <Pressable
+                    key={seat.id}
+                    disabled={disabled}
+                    onPress={() => setSelectedSeatId(seat.id)}
+                    style={({ pressed }) => [
+                      styles.seatCard,
+                      disabled ? styles.seatCardDisabled : null,
+                      selected ? styles.seatCardSelected : null,
+                      pressed && !disabled ? styles.pressed : null,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.seatCardNumber,
+                        selected ? styles.seatCardNumberSelected : null,
+                      ]}
+                    >
+                      {seat.broj_mjesta}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.seatCardMeta,
+                        selected ? styles.seatCardMetaSelected : null,
+                      ]}
+                    >
+                      {disabled ? "Zauzeto" : selected ? "Odabrano" : "Slobodno"}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ))}
 
         <AppButton
           label={savingReservation ? "Čuvanje..." : "Zauzmi mjesto"}
@@ -2233,6 +2415,53 @@ function splitLines(value: string) {
     .filter(Boolean);
 }
 
+function groupAdminCitaonaSeats(seats: CitaonaSeat[], rooms: CitaonicaRoom[]) {
+  const roomOrder = new Map<number, number>();
+  rooms.forEach((room, index) => {
+    roomOrder.set(room.id, index);
+  });
+
+  const grouped = new Map<
+    number,
+    {
+      id: number;
+      naziv: string;
+      lokacija: string;
+      broj_mjesta: number;
+      slobodna_mjesta: number;
+      mjesta: CitaonaSeat[];
+    }
+  >();
+
+  seats.forEach((seat) => {
+    const roomId = seat.citaonica_id || 0;
+    const current = grouped.get(roomId) || {
+      id: roomId,
+      naziv: seat.citaonica_naziv || "Citaonica",
+      lokacija: seat.citaonica_lokacija || "Lokacija nije unesena",
+      broj_mjesta: 0,
+      slobodna_mjesta: 0,
+      mjesta: [],
+    };
+
+    current.broj_mjesta += 1;
+    current.slobodna_mjesta += seat.zauzeto ? 0 : 1;
+    current.mjesta.push(seat);
+    grouped.set(roomId, current);
+  });
+
+  return Array.from(grouped.values()).sort((first, second) => {
+    const firstOrder = roomOrder.get(first.id) ?? Number.MAX_SAFE_INTEGER;
+    const secondOrder = roomOrder.get(second.id) ?? Number.MAX_SAFE_INTEGER;
+
+    if (firstOrder !== secondOrder) {
+      return firstOrder - secondOrder;
+    }
+
+    return first.naziv.localeCompare(second.naziv);
+  });
+}
+
 function sanitizeWholeNumber(value: string) {
   return Math.max(0, Number.parseInt(String(value || "0"), 10) || 0);
 }
@@ -2404,6 +2633,9 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 16,
     fontWeight: "800",
+  },
+  roomGroupCard: {
+    gap: 10,
   },
   seatCard: {
     alignItems: "center",

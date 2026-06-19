@@ -1,5 +1,11 @@
 const pool = require("../config/db");
 const { getMenuMutationError } = require("../utils/menzaMenuRules");
+const {
+  notifyStudentsAboutDiscount,
+} = require("../utils/discountNotifications");
+const {
+  notifyStudentsAboutOpportunity,
+} = require("../utils/scholarshipNotifications");
 
 const createAnnouncement = async (req, res) => {
   try {
@@ -97,7 +103,16 @@ const createScholarship = async (req, res) => {
       [naslov, institucija, tip, opis, iznos, rok, link, aktivan ?? true]
     );
 
-    res.status(201).json({ message: "Stipendija dodata.", scholarship: result.rows[0] });
+    res.status(201).json({ message: "Konkurs uspjesno dodat.", scholarship: result.rows[0] });
+
+    try {
+      await notifyStudentsAboutOpportunity(result.rows[0]);
+    } catch (pushError) {
+      console.error(
+        "Greska pri slanju push obavjestenja za novi stipendijski konkurs ili kredit:",
+        pushError.message
+      );
+    }
   } catch (error) {
     res.status(500).json({ message: "Greška pri dodavanju stipendije.", error: error.message });
   }
@@ -120,13 +135,50 @@ const createDiscount = async (req, res) => {
 
     const result = await pool.query(
       `INSERT INTO popust 
-       (partner_id, naslov, opis, kategorija, vrijednost, kod, valid_from, valid_until, lokacija, aktivan)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+       (
+         partner_id,
+         naslov,
+         opis,
+         kategorija,
+         vrijednost,
+         kod,
+         valid_from,
+         valid_until,
+         lokacija,
+         aktivan,
+         status,
+         approved_at,
+         approved_by,
+         created_at,
+         updated_at
+       )
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'approved',NOW(),$11,NOW(),NOW())
        RETURNING *`,
-      [partner_id, naslov, opis, kategorija, vrijednost, kod, valid_from, valid_until, lokacija, aktivan ?? true]
+      [
+        partner_id,
+        naslov,
+        opis,
+        kategorija,
+        vrijednost,
+        kod,
+        valid_from,
+        valid_until,
+        lokacija,
+        aktivan ?? true,
+        req.user.id,
+      ]
     );
 
     res.status(201).json({ message: "Popust dodat.", discount: result.rows[0] });
+
+    try {
+      await notifyStudentsAboutDiscount(result.rows[0]);
+    } catch (pushError) {
+      console.error(
+        "Greska pri slanju push obavjestenja za novi admin popust:",
+        pushError.message
+      );
+    }
   } catch (error) {
     res.status(500).json({ message: "Greška pri dodavanju popusta.", error: error.message });
   }

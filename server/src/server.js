@@ -6,6 +6,7 @@ const app = require("./app");
 const initDb = require("./config/initDb");
 const { ensureProfileImageSupport } = require("./utils/profileImage");
 const { ensureCitaonaTrackingSupport } = require("./utils/citaonaTracking");
+const { ensureCitaonicaSupport } = require("./utils/citaonicaSupport");
 const { ensurePushNotificationSupport } = require("./utils/pushNotifications");
 
 const PORT = process.env.PORT || 5000;
@@ -15,6 +16,7 @@ async function startServer() {
     await initDb();
     await ensureProfileImageSupport();
     await ensureCitaonaTrackingSupport();
+    await ensureCitaonicaSupport();
     await ensurePushNotificationSupport();
 
     app.listen(PORT, () => {
