@@ -5,6 +5,139 @@ const {
   isValidDateString,
 } = require("../utils/menzaMenuRules");
 
+const MENZA_MONTHLY_LIMIT = 500;
+const LOCAL_TIMEZONE = "Europe/Podgorica";
+
+const EMPTY_BONOVI = {
+  dorucak: 0,
+  rucak: 0,
+  vecera: 0,
+  updated_at: null,
+};
+
+async function getBonoviByUserId(userId) {
+  const bonovi = await pool.query(
+    `
+    SELECT dorucak, rucak, vecera, updated_at
+    FROM menza_bonovi
+    WHERE user_id = $1
+    `,
+    [userId]
+  );
+
+  return bonovi.rows[0] || EMPTY_BONOVI;
+}
+
+function parseVoucherCount(value) {
+  const parsed = Number(value);
+
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function isValidExpiryDate(value) {
+  const match = /^(\d{2})\/(\d{2})$/.exec(String(value || "").trim());
+
+  if (!match) {
+    return false;
+  }
+
+  const month = Number(match[1]);
+  const year = 2000 + Number(match[2]);
+
+  if (month < 1 || month > 12) {
+    return false;
+  }
+
+  const expiryDate = new Date(year, month, 0, 23, 59, 59, 999);
+
+  return Number.isFinite(expiryDate.getTime()) && expiryDate >= new Date();
+}
+
+async function getMonthlyVoucherAvailability(queryable = pool) {
+  const result = await queryable.query(
+    `
+    SELECT
+      COALESCE(SUM(dorucak), 0)::int AS dorucak,
+      COALESCE(SUM(rucak), 0)::int AS rucak,
+      COALESCE(SUM(vecera), 0)::int AS vecera,
+      TO_CHAR(
+        DATE_TRUNC('month', NOW() AT TIME ZONE $1),
+        'YYYY-MM'
+      ) AS mjesec
+    FROM menza_bonovi
+    `,
+    [LOCAL_TIMEZONE]
+  );
+
+  const sold = result.rows[0] || {
+    dorucak: 0,
+    rucak: 0,
+    vecera: 0,
+    mjesec: null,
+  };
+
+  return {
+    mjesec: sold.mjesec,
+    limit_po_obroku: MENZA_MONTHLY_LIMIT,
+    prodato: {
+      dorucak: Number(sold.dorucak || 0),
+      rucak: Number(sold.rucak || 0),
+      vecera: Number(sold.vecera || 0),
+    },
+    preostalo: {
+      dorucak: Math.max(MENZA_MONTHLY_LIMIT - Number(sold.dorucak || 0), 0),
+      rucak: Math.max(MENZA_MONTHLY_LIMIT - Number(sold.rucak || 0), 0),
+      vecera: Math.max(MENZA_MONTHLY_LIMIT - Number(sold.vecera || 0), 0),
+    },
+  };
+}
+
+function buildAllowedPurchase(counts, availability) {
+  return {
+    dorucak: Math.min(counts.dorucak, availability.preostalo.dorucak),
+    rucak: Math.min(counts.rucak, availability.preostalo.rucak),
+    vecera: Math.min(counts.vecera, availability.preostalo.vecera),
+  };
+}
+
+function countsMatch(first, second) {
+  return (
+    first.dorucak === second.dorucak &&
+    first.rucak === second.rucak &&
+    first.vecera === second.vecera
+  );
+}
+
+function sumCounts(counts) {
+  return counts.dorucak + counts.rucak + counts.vecera;
+}
+
+function buildPurchaseSuggestionMessage(allowedPurchase) {
+  if (sumCounts(allowedPurchase) === 0) {
+    return "Nema vise bonova na raspolaganju.";
+  }
+
+  const parts = [];
+
+  if (allowedPurchase.dorucak > 0) {
+    parts.push(`dorucak ${allowedPurchase.dorucak}`);
+  }
+
+  if (allowedPurchase.rucak > 0) {
+    parts.push(`rucak ${allowedPurchase.rucak}`);
+  }
+
+  if (allowedPurchase.vecera > 0) {
+    parts.push(`vecera ${allowedPurchase.vecera}`);
+  }
+
+  return `Trenutno mozes kupiti najvise: ${parts.join(", ")}.`;
+}
+
 const getMenzaData = async (req, res) => {
   try {
     const weekStart = req.query.od || getLocalNowParts().date;
@@ -27,15 +160,6 @@ const getMenzaData = async (req, res) => {
       [weekStart]
     );
 
-    const bonovi = await pool.query(
-      `
-      SELECT dorucak, rucak, vecera, updated_at
-      FROM menza_bonovi
-      WHERE user_id = $1
-      `,
-      [req.user.id]
-    );
-
     const obavjestenja = await pool.query(
       `
       SELECT id, naslov, opis, kategorija, datum_vrijeme
@@ -48,17 +172,27 @@ const getMenzaData = async (req, res) => {
 
     res.json({
       meni: meni.rows,
-      bonovi: bonovi.rows[0] || {
-        dorucak: 0,
-        rucak: 0,
-        vecera: 0,
-        updated_at: null,
-      },
+      bonovi: await getBonoviByUserId(req.user.id),
       obavjestenja: obavjestenja.rows,
+      prodaja: await getMonthlyVoucherAvailability(),
     });
   } catch (error) {
     res.status(500).json({
       message: "Greška pri učitavanju menze.",
+      error: error.message,
+    });
+  }
+};
+
+const getMyBonovi = async (req, res) => {
+  try {
+    res.json({
+      bonovi: await getBonoviByUserId(req.user.id),
+      prodaja: await getMonthlyVoucherAvailability(),
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Greska pri ucitavanju bonova.",
       error: error.message,
     });
   }
@@ -453,8 +587,131 @@ const updateStudentBonovi = async (req, res) => {
   }
 };
 
+const purchaseBonovi = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    if (req.user.role !== "student") {
+      return res.status(403).json({
+        message: "Kupovina bonova je dostupna samo studentima.",
+      });
+    }
+
+    const { dorucak, rucak, vecera, cardNumber, cvv, expiryDate } = req.body;
+
+    const dorucakCount = parseVoucherCount(dorucak);
+    const rucakCount = parseVoucherCount(rucak);
+    const veceraCount = parseVoucherCount(vecera);
+    const normalizedCardNumber = String(cardNumber || "").replace(/\D/g, "");
+    const normalizedCvv = String(cvv || "").replace(/\D/g, "");
+
+    if (
+      dorucakCount === null ||
+      rucakCount === null ||
+      veceraCount === null
+    ) {
+      return res.status(400).json({
+        message: "Broj bonova mora biti cio broj jednak ili veci od nule.",
+      });
+    }
+
+    const requestedCounts = {
+      dorucak: dorucakCount,
+      rucak: rucakCount,
+      vecera: veceraCount,
+    };
+
+    if (sumCounts(requestedCounts) === 0) {
+      return res.status(400).json({
+        message: "Unesi broj bonova za bar jedan obrok.",
+      });
+    }
+
+    if (normalizedCardNumber.length !== 12) {
+      return res.status(400).json({
+        message: "Broj kartice mora imati tacno 12 cifara.",
+      });
+    }
+
+    if (normalizedCvv.length !== 3) {
+      return res.status(400).json({
+        message: "CVV mora imati tacno 3 cifre.",
+      });
+    }
+
+    if (!isValidExpiryDate(expiryDate)) {
+      return res.status(400).json({
+        message: "Datum isteka mora biti u formatu MM/YY i kartica ne smije biti istekla.",
+      });
+    }
+
+    await client.query("BEGIN");
+    await client.query("LOCK TABLE menza_bonovi IN EXCLUSIVE MODE");
+
+    const availability = await getMonthlyVoucherAvailability(client);
+    const allowedPurchase = buildAllowedPurchase(requestedCounts, availability);
+
+    if (!countsMatch(requestedCounts, allowedPurchase)) {
+      await client.query("ROLLBACK");
+
+      return res.status(409).json({
+        message: buildPurchaseSuggestionMessage(allowedPurchase),
+        allowedPurchase,
+        prodaja: availability,
+      });
+    }
+
+    await client.query(
+      `
+      INSERT INTO menza_bonovi_kupovine (
+        user_id,
+        dorucak,
+        rucak,
+        vecera,
+        purchased_at
+      )
+      VALUES ($1, $2, $3, $4, NOW())
+      `,
+      [req.user.id, dorucakCount, rucakCount, veceraCount]
+    );
+
+    const result = await client.query(
+      `
+      INSERT INTO menza_bonovi (user_id, dorucak, rucak, vecera, updated_at)
+      VALUES ($1, $2, $3, $4, NOW())
+      ON CONFLICT (user_id)
+      DO UPDATE SET
+        dorucak = menza_bonovi.dorucak + EXCLUDED.dorucak,
+        rucak = menza_bonovi.rucak + EXCLUDED.rucak,
+        vecera = menza_bonovi.vecera + EXCLUDED.vecera,
+        updated_at = NOW()
+      RETURNING *
+      `,
+      [req.user.id, dorucakCount, rucakCount, veceraCount]
+    );
+
+    const updatedAvailability = await getMonthlyVoucherAvailability(client);
+    await client.query("COMMIT");
+
+    res.status(201).json({
+      message: "Kupovina bonova je simulirana i stanje je azurirano.",
+      bonovi: result.rows[0] || EMPTY_BONOVI,
+      prodaja: updatedAvailability,
+    });
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    res.status(500).json({
+      message: "Greska pri kupovini bonova.",
+      error: error.message,
+    });
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
   getMenzaData,
+  getMyBonovi,
   getAdminMenzaMenuByDate,
   saveMenzaMenu,
   updateMenzaMenu,
@@ -465,4 +722,5 @@ module.exports = {
   deleteMenzaNotice,
   searchStudentsForMenza,
   updateStudentBonovi,
+  purchaseBonovi,
 };

@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { useFocusEffect } from "@react-navigation/native";
 
 import { api, getApiErrorMessage } from "../../api/client";
 import { AppButton } from "../../components/AppButton";
@@ -18,8 +19,16 @@ import { StatusBanner } from "../../components/StatusBanner";
 import { useAuth } from "../../context/AuthContext";
 import { ADMIN_MENU, MAIN_MENU } from "../../data/mainMenu";
 import { colors } from "../../theme/colors";
+import { MenzaBonovi } from "../../types/modules";
+import { formatDateTime } from "../../utils/format";
 
 const MAX_AVATAR_SIZE_MB = 4;
+const EMPTY_BONOVI: MenzaBonovi = {
+  dorucak: 0,
+  rucak: 0,
+  vecera: 0,
+  updated_at: null,
+};
 
 export function ProfilScreen() {
   const {
@@ -37,6 +46,8 @@ export function ProfilScreen() {
   const [avatarData, setAvatarData] = useState("");
   const [avatarPreview, setAvatarPreview] = useState("");
   const [avatarName, setAvatarName] = useState("");
+  const [bonovi, setBonovi] = useState<MenzaBonovi>(EMPTY_BONOVI);
+  const [bonoviMessage, setBonoviMessage] = useState("");
   const [preferenceMessage, setPreferenceMessage] = useState("");
   const [locationTrackingConsent, setLocationTrackingConsent] = useState(false);
   const [form, setForm] = useState({
@@ -67,14 +78,34 @@ export function ProfilScreen() {
     [user]
   );
 
-  const loadProfile = useCallback(async () => {
-    await refreshMe();
-  }, [refreshMe]);
+  const loadBonovi = useCallback(async () => {
+    if (user?.role !== "student") {
+      setBonovi(EMPTY_BONOVI);
+      setBonoviMessage("");
+      return;
+    }
 
-  useEffect(() => {
-    setRefreshing(true);
-    loadProfile().finally(() => setRefreshing(false));
-  }, [loadProfile]);
+    try {
+      setBonoviMessage("");
+      const response = await api.get<{ bonovi: MenzaBonovi }>("/menza/bonovi");
+      setBonovi(response.data?.bonovi || EMPTY_BONOVI);
+    } catch (error) {
+      setBonoviMessage(
+        getApiErrorMessage(error, "Greska pri ucitavanju bonova.")
+      );
+    }
+  }, [user?.role]);
+
+  const loadProfile = useCallback(async () => {
+    await Promise.all([refreshMe(), loadBonovi()]);
+  }, [loadBonovi, refreshMe]);
+
+  useFocusEffect(
+    useCallback(() => {
+      setRefreshing(true);
+      loadProfile().finally(() => setRefreshing(false));
+    }, [loadProfile])
+  );
 
   async function pickImage() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -309,6 +340,35 @@ export function ProfilScreen() {
 
       {user?.role === "student" ? (
         <SectionCard
+          subtitle="Trenutno stanje bonova sa menza naloga."
+          title="Menza bonovi"
+        >
+          <View style={styles.bonoviRow}>
+            <View style={styles.bonoviCard}>
+              <Text style={styles.bonoviTitle}>Dorucak</Text>
+              <Text style={styles.bonoviCount}>{String(bonovi.dorucak ?? 0)}</Text>
+            </View>
+            <View style={styles.bonoviCard}>
+              <Text style={styles.bonoviTitle}>Rucak</Text>
+              <Text style={styles.bonoviCount}>{String(bonovi.rucak ?? 0)}</Text>
+            </View>
+            <View style={styles.bonoviCard}>
+              <Text style={styles.bonoviTitle}>Vecera</Text>
+              <Text style={styles.bonoviCount}>{String(bonovi.vecera ?? 0)}</Text>
+            </View>
+          </View>
+
+          <Text style={styles.bonoviHelper}>
+            Posljednje azuriranje:{" "}
+            {formatDateTime(bonovi.updated_at, "nije dostupno")}
+          </Text>
+
+          {bonoviMessage ? <StatusBanner text={bonoviMessage} tone="info" /> : null}
+        </SectionCard>
+      ) : null}
+
+      {user?.role === "student" ? (
+        <SectionCard
           subtitle="Dnevna rezervacija čitaonice koristi lokaciju da provjeri da li si u dozvoljenom radijusu."
           title="Lokacija za čitaonicu"
         >
@@ -399,6 +459,36 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
+  },
+  bonoviCard: {
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.border,
+    borderRadius: 18,
+    borderWidth: 1,
+    flex: 1,
+    minWidth: "30%",
+    padding: 14,
+  },
+  bonoviCount: {
+    color: colors.text,
+    fontSize: 28,
+    fontWeight: "800",
+    marginTop: 8,
+  },
+  bonoviHelper: {
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  bonoviRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  bonoviTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: "800",
   },
   detailLabel: {
     color: "#7a8696",

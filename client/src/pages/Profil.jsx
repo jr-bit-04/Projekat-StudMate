@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import {
   BadgeCheck,
   Building2,
+  Clock3,
   GraduationCap,
   Home,
   ImagePlus,
@@ -9,6 +10,7 @@ import {
   Mail,
   MapPin,
   Save,
+  Ticket,
 } from "lucide-react";
 
 import api from "../api/axios";
@@ -18,6 +20,12 @@ import useStoredUser from "../hooks/useStoredUser";
 import { setStoredAuth, updateStoredUser } from "../utils/authStorage";
 
 const MAX_AVATAR_SIZE_MB = 4;
+const EMPTY_BONOVI = {
+  dorucak: 0,
+  rucak: 0,
+  vecera: 0,
+  updated_at: null,
+};
 
 function Profil() {
   const isResetMode = useMemo(() => {
@@ -45,19 +53,35 @@ function Profil() {
   const [locationTrackingConsent, setLocationTrackingConsent] = useState(false);
   const [preferenceMessage, setPreferenceMessage] = useState("");
   const [isSavingPreferences, setIsSavingPreferences] = useState(false);
+  const [bonovi, setBonovi] = useState(EMPTY_BONOVI);
+  const [bonoviMessage, setBonoviMessage] = useState("");
 
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const res = await api.get("/users/me");
-        updateStoredUser(res.data.user);
+        const [profileRes, bonoviRes] = await Promise.all([
+          api.get("/users/me"),
+          user?.role === "student" ? api.get("/menza/bonovi") : Promise.resolve(null),
+        ]);
+
+        updateStoredUser(profileRes.data.user);
+
+        if (bonoviRes?.data?.bonovi) {
+          setBonovi(bonoviRes.data.bonovi);
+          setBonoviMessage("");
+        } else if (user?.role !== "student") {
+          setBonovi(EMPTY_BONOVI);
+          setBonoviMessage("");
+        }
       } catch {
-        // Keep the locally stored user if refreshing the profile fails.
+        if (user?.role === "student") {
+          setBonoviMessage("Greška pri učitavanju menza bonova.");
+        }
       }
     };
 
     loadProfile();
-  }, []);
+  }, [user?.role]);
 
   useEffect(() => {
     setLocationTrackingConsent(user?.location_tracking_consent === true);
@@ -322,6 +346,45 @@ function Profil() {
         <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6 lg:p-8">
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0b3a8f]/10 text-[#0b3a8f]">
+              <Ticket size={22} />
+            </div>
+
+            <div className="min-w-0">
+              <h2 className="text-xl font-bold text-[#10243A] md:text-2xl">
+                Menza bonovi
+              </h2>
+
+              <p className="mt-2 break-words text-sm leading-6 text-slate-500">
+                Ovo je trenutno stanje bonova koje možeš da koristiš u menzi.
+                Nakon simulirane kupovine na menza stranici, stanje se ovdje odmah
+                osvježava.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <VoucherCard label="Doručak" value={bonovi.dorucak} />
+            <VoucherCard label="Ručak" value={bonovi.rucak} />
+            <VoucherCard label="Večera" value={bonovi.vecera} />
+          </div>
+
+          <div className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] px-4 py-3 text-sm font-semibold text-slate-600">
+            <Clock3 size={17} className="text-[#0b3a8f]" />
+            Posljednje ažuriranje: {formatDateTime(bonovi.updated_at)}
+          </div>
+
+          {bonoviMessage && (
+            <div className="mt-4 rounded-2xl bg-[#0b3a8f]/10 p-4 text-sm font-bold text-[#0b3a8f]">
+              {bonoviMessage}
+            </div>
+          )}
+        </section>
+      )}
+
+      {user?.role === "student" && (
+        <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6 lg:p-8">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0b3a8f]/10 text-[#0b3a8f]">
               <MapPin size={22} />
             </div>
 
@@ -434,6 +497,21 @@ function Profil() {
   );
 }
 
+function VoucherCard({ label, value }) {
+  return (
+    <div className="rounded-[22px] border border-[#dbe4f0] bg-[#F8FBFF] p-5">
+      <div className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
+        Bonovi
+      </div>
+      <div className="mt-2 text-xl font-bold text-[#10243A]">{label}</div>
+      <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#0b3a8f] px-4 py-2 text-white">
+        <Ticket size={18} />
+        <span className="text-2xl font-bold">{value ?? 0}</span>
+      </div>
+    </div>
+  );
+}
+
 function PasswordInput({ placeholder, value, onChange }) {
   return (
     <input
@@ -444,6 +522,18 @@ function PasswordInput({ placeholder, value, onChange }) {
       className="h-12 w-full min-w-0 rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] px-4 text-sm font-semibold outline-none focus:border-[#0b3a8f]"
     />
   );
+}
+
+function formatDateTime(value) {
+  if (!value) return "nije dostupno";
+
+  return new Date(value).toLocaleString("sr-Latn-ME", {
+    day: "numeric",
+    month: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export default Profil;

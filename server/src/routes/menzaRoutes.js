@@ -2,6 +2,7 @@ const express = require("express");
 
 const {
   getMenzaData,
+  getMyBonovi,
   getAdminMenzaMenuByDate,
   saveMenzaMenu,
   updateMenzaMenu,
@@ -12,6 +13,7 @@ const {
   deleteMenzaNotice,
   searchStudentsForMenza,
   updateStudentBonovi,
+  purchaseBonovi,
 } = require("../controllers/menzaController");
 
 const { protect, requireModuleAdmin } = require("../middleware/authMiddleware");
@@ -19,6 +21,8 @@ const { protect, requireModuleAdmin } = require("../middleware/authMiddleware");
 const router = express.Router();
 
 router.get("/", protect, getMenzaData);
+router.get("/bonovi", protect, getMyBonovi);
+router.post("/bonovi/kupovina", protect, purchaseBonovi);
 
 router.get("/admin/meni", protect, requireModuleAdmin("menza"), getAdminMenzaMenuByDate);
 router.post("/admin/meni", protect, requireModuleAdmin("menza"), saveMenzaMenu);
