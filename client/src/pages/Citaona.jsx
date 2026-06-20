@@ -245,6 +245,7 @@ function Citaona() {
         image={citaonaHero}
         imageAlt="Unutrašnjost čitaonice"
         theme="slate"
+        featuredHighlight={{ icon: DoorOpen, label: "Čitaonica" }}
         highlights={[
           { icon: DoorOpen, label: `${selectedRoom?.broj_mjesta || mjesta.length || 0} mjesta` },
           { icon: Clock3, label: "Radno vrijeme" },

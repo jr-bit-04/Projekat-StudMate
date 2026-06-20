@@ -24,9 +24,61 @@ body {
 }
 
 body {
-  background: #0b3a8f;
+  background:
+    radial-gradient(circle at top, rgba(72, 139, 255, 0.34), transparent 34%),
+    linear-gradient(180deg, #0a2a6c 0%, #06173d 100%);
   font-family: "Montserrat", sans-serif;
   color: #10243a;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(11, 58, 143, 0.18);
+  color: #10243a;
+}
+
+@keyframes studmate-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate3d(0, -14px, 0) scale(1.04);
+  }
+}
+
+@keyframes studmate-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  50% {
+    transform: translate3d(24px, -18px, 0);
+  }
+}
+
+.studmate-float-slow {
+  animation: studmate-float 12s ease-in-out infinite;
+}
+
+.studmate-drift {
+  animation: studmate-drift 18s ease-in-out infinite;
+}
+
+.studmate-grid-overlay {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: linear-gradient(180deg, rgba(255, 255, 255, 0.65), transparent 92%);
+}
+
+.studmate-noise {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.22) 0.8px, transparent 0.8px);
+  background-size: 18px 18px;
+  mix-blend-mode: soft-light;
+  opacity: 0.18;
 }

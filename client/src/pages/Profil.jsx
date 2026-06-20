@@ -27,6 +27,12 @@ const EMPTY_BONOVI = {
   updated_at: null,
 };
 
+const EMPTY_DOM_STATE = {
+  obligations: [],
+  lastUpdated: null,
+  currentYear: new Date().getFullYear(),
+};
+
 function Profil() {
   const isResetMode = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
@@ -55,13 +61,16 @@ function Profil() {
   const [isSavingPreferences, setIsSavingPreferences] = useState(false);
   const [bonovi, setBonovi] = useState(EMPTY_BONOVI);
   const [bonoviMessage, setBonoviMessage] = useState("");
+  const [domState, setDomState] = useState(EMPTY_DOM_STATE);
+  const [domMessage, setDomMessage] = useState("");
 
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const [profileRes, bonoviRes] = await Promise.all([
+        const [profileRes, bonoviRes, domRes] = await Promise.all([
           api.get("/users/me"),
           user?.role === "student" ? api.get("/menza/bonovi") : Promise.resolve(null),
+          user?.role === "student" ? api.get("/dom") : Promise.resolve(null),
         ]);
 
         updateStoredUser(profileRes.data.user);
@@ -73,9 +82,23 @@ function Profil() {
           setBonovi(EMPTY_BONOVI);
           setBonoviMessage("");
         }
+
+        if (domRes?.data) {
+          setDomState({
+            obligations: domRes.data.obligations || [],
+            lastUpdated: domRes.data.lastUpdated || null,
+            currentYear:
+              Number(domRes.data.currentYear) || new Date().getFullYear(),
+          });
+          setDomMessage("");
+        } else if (user?.role !== "student") {
+          setDomState(EMPTY_DOM_STATE);
+          setDomMessage("");
+        }
       } catch {
         if (user?.role === "student") {
           setBonoviMessage("Greška pri učitavanju menza bonova.");
+          setDomMessage("Greška pri učitavanju obaveza doma.");
         }
       }
     };
@@ -86,6 +109,25 @@ function Profil() {
   useEffect(() => {
     setLocationTrackingConsent(user?.location_tracking_consent === true);
   }, [user?.location_tracking_consent]);
+
+  const domSummary = useMemo(() => {
+    const currentYearObligations = domState.obligations.filter(
+      (item) => Number(item.godina) === Number(domState.currentYear)
+    );
+
+    return {
+      paidMonths: currentYearObligations.filter(
+        (item) => String(item.status || "").toLowerCase() === "paid"
+      ).length,
+      unpaidMonths: currentYearObligations.filter(
+        (item) => String(item.status || "").toLowerCase() === "unpaid"
+      ).length,
+      totalPaid: currentYearObligations.reduce(
+        (sum, item) => sum + (Number(item.uplaceno) || 0),
+        0
+      ),
+    };
+  }, [domState.currentYear, domState.obligations]);
 
   const rows = [
     { label: "Email adresa", value: user?.email || "-", icon: Mail },
@@ -385,6 +427,56 @@ function Profil() {
         <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6 lg:p-8">
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0b3a8f]/10 text-[#0b3a8f]">
+              <Home size={22} />
+            </div>
+
+            <div className="min-w-0">
+              <h2 className="text-xl font-bold text-[#10243A] md:text-2xl">
+                Dom obaveze
+              </h2>
+
+              <p className="mt-2 break-words text-sm leading-6 text-slate-500">
+                Nakon simuliranog plaćanja doma na dom stranici, ovdje odmah vidiš
+                koliko je mjeseci plaćeno i ukupan iznos za {domState.currentYear}.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <ProfileStatCard
+              label="Plaćeni mjeseci"
+              value={String(domSummary.paidMonths)}
+              icon={CalendarDays}
+            />
+            <ProfileStatCard
+              label="Neplaćeni mjeseci"
+              value={String(domSummary.unpaidMonths)}
+              icon={Clock3}
+            />
+            <ProfileStatCard
+              label="Ukupno uplaćeno"
+              value={formatMoney(domSummary.totalPaid)}
+              icon={Home}
+            />
+          </div>
+
+          <div className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] px-4 py-3 text-sm font-semibold text-slate-600">
+            <Clock3 size={17} className="text-[#0b3a8f]" />
+            Posljednje ažuriranje: {formatDateTime(domState.lastUpdated)}
+          </div>
+
+          {domMessage && (
+            <div className="mt-4 rounded-2xl bg-[#0b3a8f]/10 p-4 text-sm font-bold text-[#0b3a8f]">
+              {domMessage}
+            </div>
+          )}
+        </section>
+      )}
+
+      {user?.role === "student" && (
+        <section className="mt-7 min-w-0 rounded-[22px] border border-[#dbe4f0] bg-white p-4 shadow-sm md:p-6 lg:p-8">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0b3a8f]/10 text-[#0b3a8f]">
               <MapPin size={22} />
             </div>
 
@@ -512,6 +604,22 @@ function VoucherCard({ label, value }) {
   );
 }
 
+function ProfileStatCard({ icon: Icon, label, value }) {
+  return (
+    <div className="rounded-[22px] border border-[#dbe4f0] bg-[#F8FBFF] p-5">
+      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0b3a8f]/10 text-[#0b3a8f]">
+        <Icon size={18} />
+      </div>
+      <div className="mt-3 text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
+        {label}
+      </div>
+      <div className="mt-2 break-words text-2xl font-bold text-[#10243A]">
+        {value}
+      </div>
+    </div>
+  );
+}
+
 function PasswordInput({ placeholder, value, onChange }) {
   return (
     <input
@@ -534,6 +642,10 @@ function formatDateTime(value) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function formatMoney(value) {
+  return `${Number(value || 0).toFixed(2)} €`;
 }
 
 export default Profil;

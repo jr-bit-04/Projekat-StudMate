@@ -13,6 +13,7 @@ import axios from "axios";
 
 import menzaHero from "../../assets/sections/menza.jpg";
 import { api, getApiErrorMessage } from "../../api/client";
+import { ActionCtaCard } from "../../components/ActionCtaCard";
 import { AppButton } from "../../components/AppButton";
 import { InfoBadge } from "../../components/InfoBadge";
 import { ScreenShell } from "../../components/ScreenShell";
@@ -163,6 +164,10 @@ export function MenzaScreen() {
   );
 
   const breakfastItems = normalizeBreakfastItems(selectedMenu?.dorucak_stavke);
+  const totalVoucherCount =
+    Number(purchaseForm.dorucak || 0) +
+    Number(purchaseForm.rucak || 0) +
+    Number(purchaseForm.vecera || 0);
 
   function updatePurchaseField(
     field: keyof typeof initialPurchaseForm,
@@ -334,27 +339,13 @@ export function MenzaScreen() {
           </Text>
 
           {user?.role === "student" ? (
-            <Pressable
+            <ActionCtaCard
+              badge="Kupovina bonova"
+              chipLabel="Otvori uplatu"
+              description="Otvori formu za dorucak, rucak i veceru i odmah dopuni stanje svog naloga."
               onPress={openPurchaseModal}
-              style={({ pressed }) => [
-                styles.purchaseCta,
-                pressed ? styles.purchaseCtaPressed : null,
-              ]}
-            >
-              <View style={styles.purchaseCtaBadge}>
-                <Text style={styles.purchaseCtaBadgeText}>Kupovina bonova</Text>
-              </View>
-              <Text style={styles.purchaseCtaTitle}>Kupi bonove</Text>
-              <Text style={styles.purchaseCtaText}>
-                Otvori formu za dorucak, rucak i veceru i odmah dopuni stanje
-                svog naloga.
-              </Text>
-              <View style={styles.purchaseCtaFooter}>
-                <View style={styles.purchaseCtaChip}>
-                  <Text style={styles.purchaseCtaChipText}>Otvori uplatu</Text>
-                </View>
-              </View>
-            </Pressable>
+              title="Kupi bonove"
+            />
           ) : null}
         </SectionCard>
 
@@ -488,7 +479,8 @@ export function MenzaScreen() {
             >
               <View style={styles.modalHeader}>
                 <View style={styles.modalHeaderText}>
-                  <Text style={styles.modalTitle}>Simulacija kupovine bonova</Text>
+                  <Text style={styles.modalEyebrow}>Online uplata</Text>
+                  <Text style={styles.modalTitle}>Kupovina bonova</Text>
                   <Text style={styles.modalSubtitle}>
                     Unesi broj bonova po obroku i validne podatke kartice.
                   </Text>
@@ -525,6 +517,11 @@ export function MenzaScreen() {
                   }
                   value={purchaseForm.vecera}
                 />
+              </View>
+
+              <View style={styles.totalCard}>
+                <Text style={styles.totalLabel}>Ukupno bonova</Text>
+                <Text style={styles.totalValue}>{String(totalVoucherCount)}</Text>
               </View>
 
               <Text style={styles.modalSectionTitle}>Podaci kartice</Text>
@@ -571,10 +568,6 @@ export function MenzaScreen() {
                   />
                 </FieldBlock>
               </View>
-
-              <Text style={styles.modalHelperText}>
-                Ovo je simulacija placanja. Kartica se ne cuva, vec samo sluzi za validaciju forme.
-              </Text>
 
               <View style={styles.modalActionRow}>
                 <View style={styles.modalAction}>
@@ -892,11 +885,12 @@ const styles = StyleSheet.create({
   modalHeaderText: {
     flex: 1,
   },
-  modalHelperText: {
-    color: colors.textMuted,
-    fontSize: 13,
-    lineHeight: 20,
-    marginTop: 4,
+  modalEyebrow: {
+    color: colors.primary,
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
   },
   modalSectionTitle: {
     color: colors.text,
@@ -943,68 +937,6 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     transform: [{ scale: 0.99 }],
   },
-  purchaseHint: {
-    color: colors.textMuted,
-    fontSize: 14,
-    lineHeight: 21,
-    marginBottom: 4,
-  },
-  purchaseCta: {
-    backgroundColor: colors.primary,
-    borderRadius: 24,
-    marginTop: 10,
-    padding: 18,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.28,
-    shadowRadius: 20,
-    elevation: 6,
-  },
-  purchaseCtaBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: "rgba(255, 255, 255, 0.16)",
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  purchaseCtaBadgeText: {
-    color: colors.white,
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
-  },
-  purchaseCtaChip: {
-    backgroundColor: colors.white,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  purchaseCtaChipText: {
-    color: colors.primary,
-    fontSize: 13,
-    fontWeight: "800",
-  },
-  purchaseCtaFooter: {
-    alignItems: "flex-start",
-    marginTop: 16,
-  },
-  purchaseCtaPressed: {
-    opacity: 0.95,
-    transform: [{ scale: 0.99 }],
-  },
-  purchaseCtaText: {
-    color: "rgba(255, 255, 255, 0.84)",
-    fontSize: 14,
-    lineHeight: 21,
-    marginTop: 8,
-  },
-  purchaseCtaTitle: {
-    color: colors.white,
-    fontSize: 24,
-    fontWeight: "800",
-    marginTop: 12,
-  },
   rowBetween: {
     alignItems: "center",
     flexDirection: "row",
@@ -1039,6 +971,26 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 16,
     fontWeight: "800",
+  },
+  totalCard: {
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.border,
+    borderRadius: 18,
+    borderWidth: 1,
+    marginBottom: 8,
+    padding: 14,
+  },
+  totalLabel: {
+    color: "#7a8696",
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
+  totalValue: {
+    color: colors.text,
+    fontSize: 28,
+    fontWeight: "800",
+    marginTop: 6,
   },
   voucherField: {
     flex: 1,

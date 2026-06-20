@@ -42,16 +42,62 @@ function Sidebar() {
   });
 
   return (
-    <aside className="hidden min-h-screen w-[280px] self-stretch border-r border-white/10 bg-[#0b3a8f]/82 px-5 py-6 text-white shadow-[20px_0_60px_rgba(0,0,0,0.16)] backdrop-blur-md lg:flex lg:flex-col">
-      <div className="mb-8 flex items-center gap-3">
-        <img src={ucgLogo} alt="UCG" className="h-12 w-12 object-contain" />
+    <aside className="hidden min-h-screen w-[280px] self-stretch border-r border-white/10 bg-[linear-gradient(180deg,rgba(7,31,79,0.92),rgba(11,58,143,0.74))] px-5 py-6 text-white shadow-[20px_0_60px_rgba(0,0,0,0.22)] backdrop-blur-xl lg:flex lg:flex-col">
+      <div className="mb-8 rounded-[28px] border border-white/10 bg-white/8 p-4 shadow-[0_18px_40px_rgba(0,0,0,0.14)]">
+        <div className="flex items-center gap-3">
+          <img src={ucgLogo} alt="UCG" className="h-12 w-12 object-contain" />
 
-        <div>
-          <h1 className="text-xl font-black text-white">StudMate</h1>
-          <p className="text-xs font-medium text-blue-100">
-            Univerzitet Crne Gore
-          </p>
+          <div>
+            <h1 className="text-xl font-black text-white">StudMate</h1>
+            <p className="text-xs font-medium text-blue-100">
+              Univerzitet Crne Gore
+            </p>
+          </div>
         </div>
+
+        {user ? (
+          <NavLink
+            to="/profil"
+            className={({ isActive }) =>
+              `mt-5 flex items-center gap-3 rounded-[22px] border px-3 py-3 transition ${
+                isActive
+                  ? "border-white/20 bg-white text-[#0b3a8f] shadow-[0_14px_28px_rgba(8,45,112,0.22)]"
+                  : "border-white/10 bg-white/10 text-white hover:bg-white/14"
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <Avatar
+                  name={user?.name}
+                  src={user?.profile_image_url}
+                  size="sm"
+                  className={isActive ? "border-[#dbe4f0]" : "border-white/20"}
+                />
+
+                <div className="min-w-0 flex-1">
+                  <p
+                    className={`text-[10px] font-bold uppercase tracking-[0.14em] ${
+                      isActive ? "text-[#0b3a8f]/70" : "text-blue-100/80"
+                    }`}
+                  >
+                    Tvoj nalog
+                  </p>
+                  <p className="truncate text-sm font-black">
+                    {user?.name || "Korisnik"}
+                  </p>
+                  <p
+                    className={`truncate text-xs ${
+                      isActive ? "text-slate-500" : "text-blue-100"
+                    }`}
+                  >
+                    {user?.email || "user@ucg.ac.me"}
+                  </p>
+                </div>
+              </>
+            )}
+          </NavLink>
+        ) : null}
       </div>
 
       <nav className="flex flex-1 flex-col gap-2 pr-1">
@@ -64,29 +110,10 @@ function Sidebar() {
         )}
       </nav>
 
-      <div className="rounded-3xl border border-white/10 bg-white/10 p-4">
-        <div className="flex items-center gap-3">
-          <Avatar
-            name={user?.name}
-            src={user?.profile_image_url}
-            size="md"
-            className="border border-white/25"
-          />
-
-          <div className="min-w-0">
-            <p className="truncate text-sm font-black text-white">
-              {user?.name || "Korisnik"}
-            </p>
-
-            <p className="mt-1 truncate text-xs text-blue-100">
-              {user?.email || "user@ucg.ac.me"}
-            </p>
-          </div>
-        </div>
-
+      <div className="rounded-3xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.14),rgba(255,255,255,0.08))] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.12)]">
         <button
           onClick={handleLogout}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-white/12 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/20"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white/12 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/20"
         >
           <LogOut size={18} />
           Odjava
@@ -142,7 +169,7 @@ function GlobalAdminNavigation() {
           }
           className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-black transition ${
             isActive
-              ? "bg-white text-[#0b3a8f] shadow-lg"
+              ? "bg-white text-[#0b3a8f] shadow-[0_16px_30px_rgba(8,45,112,0.24)] ring-1 ring-white/20"
               : isOpen
                 ? "bg-white/15 text-white"
                 : "text-blue-100 hover:bg-white/10 hover:text-white"
@@ -180,7 +207,7 @@ function SidebarLink({ item, nested = false }) {
           nested ? "py-2.5" : "py-3"
         } ${
           isActive
-            ? "bg-white text-[#0b3a8f] shadow-lg"
+            ? "bg-white text-[#0b3a8f] shadow-[0_16px_30px_rgba(8,45,112,0.24)] ring-1 ring-white/20"
             : "text-blue-100 hover:bg-white/10 hover:text-white"
         }`
       }

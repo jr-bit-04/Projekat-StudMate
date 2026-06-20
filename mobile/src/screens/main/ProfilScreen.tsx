@@ -19,8 +19,8 @@ import { StatusBanner } from "../../components/StatusBanner";
 import { useAuth } from "../../context/AuthContext";
 import { ADMIN_MENU, MAIN_MENU } from "../../data/mainMenu";
 import { colors } from "../../theme/colors";
-import { MenzaBonovi } from "../../types/modules";
-import { formatDateTime } from "../../utils/format";
+import { DomObligation, MenzaBonovi } from "../../types/modules";
+import { formatDateTime, formatMoney } from "../../utils/format";
 
 const MAX_AVATAR_SIZE_MB = 4;
 const EMPTY_BONOVI: MenzaBonovi = {
@@ -28,6 +28,11 @@ const EMPTY_BONOVI: MenzaBonovi = {
   rucak: 0,
   vecera: 0,
   updated_at: null,
+};
+const EMPTY_DOM_STATE = {
+  obligations: [] as DomObligation[],
+  currentYear: new Date().getFullYear(),
+  lastUpdated: null as string | null,
 };
 
 export function ProfilScreen() {
@@ -48,6 +53,8 @@ export function ProfilScreen() {
   const [avatarName, setAvatarName] = useState("");
   const [bonovi, setBonovi] = useState<MenzaBonovi>(EMPTY_BONOVI);
   const [bonoviMessage, setBonoviMessage] = useState("");
+  const [domState, setDomState] = useState(EMPTY_DOM_STATE);
+  const [domMessage, setDomMessage] = useState("");
   const [preferenceMessage, setPreferenceMessage] = useState("");
   const [locationTrackingConsent, setLocationTrackingConsent] = useState(false);
   const [form, setForm] = useState({
@@ -96,9 +103,55 @@ export function ProfilScreen() {
     }
   }, [user?.role]);
 
+  const loadDomState = useCallback(async () => {
+    if (user?.role !== "student") {
+      setDomState(EMPTY_DOM_STATE);
+      setDomMessage("");
+      return;
+    }
+
+    try {
+      setDomMessage("");
+      const response = await api.get<{
+        obligations?: DomObligation[];
+        currentYear?: number;
+        lastUpdated?: string | null;
+      }>("/dom");
+
+      setDomState({
+        obligations: response.data.obligations || [],
+        currentYear: response.data.currentYear || new Date().getFullYear(),
+        lastUpdated: response.data.lastUpdated || null,
+      });
+    } catch (error) {
+      setDomMessage(
+        getApiErrorMessage(error, "Greska pri ucitavanju doma.")
+      );
+    }
+  }, [user?.role]);
+
   const loadProfile = useCallback(async () => {
-    await Promise.all([refreshMe(), loadBonovi()]);
-  }, [loadBonovi, refreshMe]);
+    await Promise.all([refreshMe(), loadBonovi(), loadDomState()]);
+  }, [loadBonovi, loadDomState, refreshMe]);
+
+  const domSummary = useMemo(() => {
+    const currentYearObligations = domState.obligations.filter(
+      (item) => Number(item.godina) === Number(domState.currentYear)
+    );
+
+    return {
+      paidMonths: currentYearObligations.filter(
+        (item) => String(item.status || "").toLowerCase() === "paid"
+      ).length,
+      unpaidMonths: currentYearObligations.filter(
+        (item) => String(item.status || "").toLowerCase() === "unpaid"
+      ).length,
+      totalPaid: currentYearObligations.reduce(
+        (sum, item) => sum + (Number(item.uplaceno) || 0),
+        0
+      ),
+    };
+  }, [domState.currentYear, domState.obligations]);
 
   useFocusEffect(
     useCallback(() => {
@@ -369,6 +422,37 @@ export function ProfilScreen() {
 
       {user?.role === "student" ? (
         <SectionCard
+          subtitle={`Pregled placanja doma za ${domState.currentYear}.`}
+          title="Dom obaveze"
+        >
+          <View style={styles.bonoviRow}>
+            <View style={styles.bonoviCard}>
+              <Text style={styles.bonoviTitle}>Placeni mjeseci</Text>
+              <Text style={styles.bonoviCount}>{String(domSummary.paidMonths)}</Text>
+            </View>
+            <View style={styles.bonoviCard}>
+              <Text style={styles.bonoviTitle}>Neplaceni mjeseci</Text>
+              <Text style={styles.bonoviCount}>{String(domSummary.unpaidMonths)}</Text>
+            </View>
+            <View style={styles.bonoviCard}>
+              <Text style={styles.bonoviTitle}>Ukupno uplaceno</Text>
+              <Text style={styles.bonoviAmount}>
+                {formatMoney(domSummary.totalPaid, "0.00 EUR")}
+              </Text>
+            </View>
+          </View>
+
+          <Text style={styles.bonoviHelper}>
+            Posljednje azuriranje:{" "}
+            {formatDateTime(domState.lastUpdated, "nije dostupno")}
+          </Text>
+
+          {domMessage ? <StatusBanner text={domMessage} tone="info" /> : null}
+        </SectionCard>
+      ) : null}
+
+      {user?.role === "student" ? (
+        <SectionCard
           subtitle="Dnevna rezervacija čitaonice koristi lokaciju da provjeri da li si u dozvoljenom radijusu."
           title="Lokacija za čitaonicu"
         >
@@ -472,6 +556,12 @@ const styles = StyleSheet.create({
   bonoviCount: {
     color: colors.text,
     fontSize: 28,
+    fontWeight: "800",
+    marginTop: 8,
+  },
+  bonoviAmount: {
+    color: colors.text,
+    fontSize: 22,
     fontWeight: "800",
     marginTop: 8,
   },

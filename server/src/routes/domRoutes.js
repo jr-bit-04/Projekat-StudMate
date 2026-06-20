@@ -2,6 +2,7 @@ const express = require("express");
 
 const {
   getDomData,
+  purchaseDomObligations,
   searchDomStudents,
   getStudentDomObligations,
   saveStudentDomObligation,
@@ -17,6 +18,7 @@ const { protect, requireModuleAdmin } = require("../middleware/authMiddleware");
 const router = express.Router();
 
 router.get("/", protect, getDomData);
+router.post("/placanje", protect, purchaseDomObligations);
 
 router.get("/admin/studenti", protect, requireModuleAdmin("dom"), searchDomStudents);
 router.get("/admin/studenti/:userId/obaveze", protect, requireModuleAdmin("dom"), getStudentDomObligations);

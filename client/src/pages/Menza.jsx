@@ -13,6 +13,7 @@ import {
 
 import api from "../api/axios";
 import MainLayout from "../components/layout/MainLayout";
+import ActionCtaCard from "../components/ui/ActionCtaCard";
 import PageHero from "../components/ui/PageHero";
 import useStoredUser from "../hooks/useStoredUser";
 import menzaHero from "../assets/sections/menza.jpg";
@@ -117,6 +118,10 @@ function Menza() {
   const breakfastItems = normalizeBreakfastItems(
     selectedMenu?.dorucak_stavke || []
   );
+  const totalVoucherCount =
+    Number(purchaseForm.dorucak || 0) +
+    Number(purchaseForm.rucak || 0) +
+    Number(purchaseForm.vecera || 0);
 
   const openPurchaseModal = () => {
     setPurchaseMessage("");
@@ -244,6 +249,7 @@ function Menza() {
         image={menzaHero}
         imageAlt="Studenti u menzi"
         theme="emerald"
+        featuredHighlight={{ icon: Soup, label: "Obroci" }}
         highlights={[
           { icon: Coffee, label: "Doručak" },
           { icon: Soup, label: "Ručak i večera" },
@@ -307,24 +313,14 @@ function Menza() {
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
             {user?.role === "student" ? (
-              <button
-                type="button"
+              <ActionCtaCard
+                chipLabel="Otvori uplatu"
+                description="Otvori formu za doručak, ručak i večeru i odmah dopuni stanje svog naloga."
+                eyebrow="Kupovina bonova"
+                icon={CreditCard}
                 onClick={openPurchaseModal}
-                className="inline-flex w-full items-center gap-4 rounded-[22px] border border-[#1f56b3] bg-[linear-gradient(135deg,#0b3a8f_0%,#1148ad_62%,#1b5fd0_100%)] px-5 py-4 text-left text-white shadow-[0_16px_30px_rgba(11,58,143,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_36px_rgba(11,58,143,0.28)] sm:min-w-[280px] sm:w-auto"
-              >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10">
-                  <CreditCard size={20} />
-                </span>
-
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/70">
-                    Kupovina bonova
-                  </span>
-                  <span className="text-base font-bold leading-5">
-                    Kupi bonove
-                  </span>
-                </span>
-              </button>
+                title="Kupi bonove"
+              />
             ) : null}
 
             <button
@@ -518,12 +514,12 @@ function Menza() {
       </section>
 
       {showPurchaseModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/55 p-3 sm:items-center">
-          <div className="w-full max-w-2xl rounded-[28px] border border-[#dbe4f0] bg-white p-5 shadow-2xl md:p-7">
+        <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-slate-950/55 p-3 sm:items-center">
+          <div className="flex max-h-[calc(100vh-1.5rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border border-[#dbe4f0] bg-white p-5 shadow-2xl md:p-7">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0b3a8f]">
-                  Simulacija plaćanja
+                  Online uplata
                 </p>
                 <h2 className="mt-2 text-2xl font-bold text-[#10243A]">
                   Kupovina bonova
@@ -549,60 +545,76 @@ function Menza() {
               </div>
             )}
 
-            <form className="mt-6" onSubmit={handlePurchase}>
-              <div className="grid gap-4 md:grid-cols-3">
-                {meals.map((meal) => (
-                  <CountInput
-                    key={meal.key}
-                    label={meal.label}
-                    value={purchaseForm[meal.key]}
-                    onChange={(value) =>
-                      updatePurchaseField(meal.key, normalizeCountInput(value))
-                    }
-                  />
-                ))}
-              </div>
+            <form
+              className="mt-6 flex min-h-0 flex-1 flex-col"
+              onSubmit={handlePurchase}
+            >
+              <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
+                    Bonovi za uplatu
+                  </p>
 
-              <div className="mt-6 grid gap-4">
-                <InputField
-                  label="Broj kartice"
-                  placeholder="123456789012"
-                  maxLength={12}
-                  value={purchaseForm.cardNumber}
-                  onChange={(value) =>
-                    updatePurchaseField("cardNumber", normalizeDigitInput(value, 12))
-                  }
-                />
+                  <div className="mt-3 grid gap-4 md:grid-cols-3">
+                    {meals.map((meal) => (
+                      <CountInput
+                        key={meal.key}
+                        label={meal.label}
+                        value={purchaseForm[meal.key]}
+                        onChange={(value) =>
+                          updatePurchaseField(meal.key, normalizeCountInput(value))
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="mt-6 rounded-2xl border border-[#dbe4f0] bg-[#F8FBFF] px-4 py-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
+                    Ukupno bonova
+                  </p>
+
+                  <p className="mt-2 text-2xl font-bold text-[#10243A]">
+                    {totalVoucherCount}
+                  </p>
+                </div>
+
+                <div className="mt-6 grid gap-4">
                   <InputField
-                    label="CVV"
-                    placeholder="123"
-                    maxLength={3}
-                    value={purchaseForm.cvv}
+                    label="Broj kartice (12 cifara)"
+                    placeholder="123456789012"
+                    maxLength={12}
+                    value={purchaseForm.cardNumber}
                     onChange={(value) =>
-                      updatePurchaseField("cvv", normalizeDigitInput(value, 3))
+                      updatePurchaseField("cardNumber", normalizeDigitInput(value, 12))
                     }
                   />
 
-                  <InputField
-                    label="Datum isteka"
-                    placeholder="MM/YY"
-                    maxLength={5}
-                    value={purchaseForm.expiryDate}
-                    onChange={(value) =>
-                      updatePurchaseField("expiryDate", normalizeExpiryInput(value))
-                    }
-                  />
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <InputField
+                      label="CVV"
+                      placeholder="123"
+                      maxLength={3}
+                      value={purchaseForm.cvv}
+                      onChange={(value) =>
+                        updatePurchaseField("cvv", normalizeDigitInput(value, 3))
+                      }
+                    />
+
+                    <InputField
+                      label="Datum isteka"
+                      placeholder="MM/YY"
+                      maxLength={5}
+                      value={purchaseForm.expiryDate}
+                      onChange={(value) =>
+                        updatePurchaseField("expiryDate", normalizeExpiryInput(value))
+                      }
+                    />
+                  </div>
                 </div>
               </div>
 
-              <p className="mt-5 text-sm leading-6 text-slate-500">
-                Kartica se ne čuva. Ovo služi samo za simulaciju validne kupovine
-                bonova u aplikaciji.
-              </p>
-
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <div className="mt-6 flex flex-col gap-3 border-t border-[#dbe4f0] pt-5 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={closePurchaseModal}

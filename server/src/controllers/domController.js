@@ -4,6 +4,72 @@ const VALID_MONTHS = [
   "Januar", "Februar", "Mart", "April", "Maj", "Jun",
   "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar",
 ];
+const DOM_MONTHLY_PRICE = 30;
+
+function parseVoucherCount(value) {
+  const parsed = Number(value);
+
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function isValidExpiryDate(value) {
+  const match = /^(\d{2})\/(\d{2})$/.exec(String(value || "").trim());
+
+  if (!match) {
+    return false;
+  }
+
+  const month = Number(match[1]);
+  const year = 2000 + Number(match[2]);
+
+  if (month < 1 || month > 12) {
+    return false;
+  }
+
+  const expiryDate = new Date(year, month, 0, 23, 59, 59, 999);
+
+  return Number.isFinite(expiryDate.getTime()) && expiryDate >= new Date();
+}
+
+function getCurrentYear() {
+  return new Date().getFullYear();
+}
+
+function normalizeSelectedMonths(months) {
+  if (!Array.isArray(months) || months.length === 0) {
+    return [];
+  }
+
+  const uniqueMonths = [...new Set(months.map((item) => String(item || "").trim()))];
+
+  if (uniqueMonths.some((item) => !VALID_MONTHS.includes(item))) {
+    return null;
+  }
+
+  return uniqueMonths;
+}
+
+function isPaidStatus(status = "") {
+  return String(status).toLowerCase() === "paid";
+}
+
+function isInactiveStatus(status = "") {
+  return String(status).toLowerCase() === "inactive";
+}
+
+function buildDueDate(year, month) {
+  const monthIndex = VALID_MONTHS.indexOf(month);
+
+  if (monthIndex === -1) {
+    return null;
+  }
+
+  return `${year}-${String(monthIndex + 1).padStart(2, "0")}-10`;
+}
 
 async function ensureSameDorm(adminUser, userId) {
   const studentRes = await pool.query(
@@ -94,6 +160,8 @@ const getDomData = async (req, res) => {
       obligations: obligations.rows,
       obavjestenja: obavjestenja.rows,
       lastUpdated: lastUpdatedRes.rows[0]?.last_updated || null,
+      monthlyPrice: DOM_MONTHLY_PRICE,
+      currentYear: getCurrentYear(),
     });
   } catch (error) {
     res.status(500).json({
@@ -322,6 +390,191 @@ const deleteStudentDomObligation = async (req, res) => {
   }
 };
 
+const purchaseDomObligations = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    if (req.user.role !== "student") {
+      return res.status(403).json({
+        message: "Placanje doma je dostupno samo studentima.",
+      });
+    }
+
+    const { months, cardNumber, cvv, expiryDate } = req.body;
+    const selectedMonths = normalizeSelectedMonths(months);
+    const normalizedCardNumber = String(cardNumber || "").replace(/\D/g, "");
+    const normalizedCvv = String(cvv || "").replace(/\D/g, "");
+    const currentYear = getCurrentYear();
+
+    if (selectedMonths === null) {
+      return res.status(400).json({
+        message: "Odabrani mjeseci nijesu validni.",
+      });
+    }
+
+    if (selectedMonths.length === 0) {
+      return res.status(400).json({
+        message: "Izaberi bar jedan mjesec za uplatu doma.",
+      });
+    }
+
+    if (normalizedCardNumber.length !== 12) {
+      return res.status(400).json({
+        message: "Broj kartice mora imati tacno 12 cifara.",
+      });
+    }
+
+    if (normalizedCvv.length !== 3) {
+      return res.status(400).json({
+        message: "CVV mora imati tacno 3 cifre.",
+      });
+    }
+
+    if (!isValidExpiryDate(expiryDate)) {
+      return res.status(400).json({
+        message: "Datum isteka mora biti u formatu MM/YY i kartica ne smije biti istekla.",
+      });
+    }
+
+    const userRes = await client.query(
+      `
+      SELECT dorm
+      FROM users
+      WHERE id = $1
+      `,
+      [req.user.id]
+    );
+
+    const userDorm = userRes.rows[0]?.dorm;
+
+    if (!userDorm || userDorm === "-") {
+      return res.status(400).json({
+        message: "Student nema dodijeljen studentski dom.",
+      });
+    }
+
+    await client.query("BEGIN");
+    await client.query("LOCK TABLE dom_obaveza IN EXCLUSIVE MODE");
+
+    const existingRes = await client.query(
+      `
+      SELECT id, mjesec, godina, status, due_date
+      FROM dom_obaveza
+      WHERE user_id = $1
+        AND godina = $2
+        AND mjesec = ANY($3::text[])
+      `,
+      [req.user.id, currentYear, selectedMonths]
+    );
+
+    const existingByMonth = new Map(
+      existingRes.rows.map((item) => [item.mjesec, item])
+    );
+
+    const alreadyPaidMonths = selectedMonths.filter((month) =>
+      isPaidStatus(existingByMonth.get(month)?.status)
+    );
+
+    if (alreadyPaidMonths.length > 0) {
+      await client.query("ROLLBACK");
+
+      return res.status(409).json({
+        message: `Ovi mjeseci su vec placeni: ${alreadyPaidMonths.join(", ")}.`,
+        conflictingMonths: alreadyPaidMonths,
+      });
+    }
+
+    const inactiveMonths = selectedMonths.filter((month) =>
+      isInactiveStatus(existingByMonth.get(month)?.status)
+    );
+
+    if (inactiveMonths.length > 0) {
+      await client.query("ROLLBACK");
+
+      return res.status(409).json({
+        message: `Za ove mjesece student ne boravi u domu: ${inactiveMonths.join(", ")}.`,
+        conflictingMonths: inactiveMonths,
+      });
+    }
+
+    for (const month of selectedMonths) {
+      const existing = existingByMonth.get(month);
+      const dueDate = existing?.due_date || buildDueDate(currentYear, month);
+
+      if (existing?.id) {
+        await client.query(
+          `
+          UPDATE dom_obaveza
+          SET iznos = $1,
+              uplaceno = $1,
+              status = 'paid',
+              due_date = COALESCE(due_date, $2),
+              paid_at = NOW(),
+              updated_at = NOW()
+          WHERE id = $3
+          `,
+          [DOM_MONTHLY_PRICE, dueDate, existing.id]
+        );
+      } else {
+        await client.query(
+          `
+          INSERT INTO dom_obaveza (
+            user_id,
+            mjesec,
+            godina,
+            iznos,
+            uplaceno,
+            status,
+            due_date,
+            paid_at,
+            created_at,
+            updated_at
+          )
+          VALUES ($1, $2, $3, $4, $4, 'paid', $5, NOW(), NOW(), NOW())
+          `,
+          [req.user.id, month, currentYear, DOM_MONTHLY_PRICE, dueDate]
+        );
+      }
+    }
+
+    await client.query(`
+      UPDATE module_last_update
+      SET last_updated = NOW()
+      WHERE module = 'dom'
+    `);
+
+    const obligations = await client.query(
+      `
+      SELECT id, user_id, mjesec, godina, iznos, uplaceno, status, due_date, paid_at, created_at, updated_at
+      FROM dom_obaveza
+      WHERE user_id = $1
+      ORDER BY godina DESC, id ASC
+      `,
+      [req.user.id]
+    );
+
+    await client.query("COMMIT");
+
+    res.status(201).json({
+      message: "Placanje doma je simulirano i obaveze su azurirane.",
+      obligations: obligations.rows,
+      paidMonths: selectedMonths,
+      totalAmount: selectedMonths.length * DOM_MONTHLY_PRICE,
+      monthlyPrice: DOM_MONTHLY_PRICE,
+      currentYear,
+      lastUpdated: new Date().toISOString(),
+    });
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    res.status(500).json({
+      message: "Greska pri placanju doma.",
+      error: error.message,
+    });
+  } finally {
+    client.release();
+  }
+};
+
 const getDomNotices = async (req, res) => {
   try {
     const result = await pool.query(
@@ -445,6 +698,7 @@ const deleteDomNotice = async (req, res) => {
 
 module.exports = {
   getDomData,
+  purchaseDomObligations,
   searchDomStudents,
   getStudentDomObligations,
   saveStudentDomObligation,
