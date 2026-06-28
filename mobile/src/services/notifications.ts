@@ -16,12 +16,13 @@ Notifications.setNotificationHandler({
 });
 
 function resolveProjectId() {
-  return (
+  const projectId =
     EXPO_EAS_PROJECT_ID ||
     Constants.expoConfig?.extra?.eas?.projectId ||
     Constants.easConfig?.projectId ||
-    ""
-  );
+    "";
+
+  return projectId === "your-eas-project-id" ? "" : projectId;
 }
 
 function isRunningInExpoGo() {

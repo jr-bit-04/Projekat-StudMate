@@ -127,6 +127,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setIsSubmitting(true);
 
     try {
+      await api
+        .post("/users/push-token", {
+          enabled: false,
+        })
+        .catch((pushError) => {
+          console.warn("Failed to disable push token", pushError);
+        });
+
       await clearAuthSession();
       setToken(null);
       setUser(null);

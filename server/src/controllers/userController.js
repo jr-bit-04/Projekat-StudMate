@@ -7,6 +7,10 @@ const {
   saveProfileImage,
   removeProfileImage,
 } = require("../utils/profileImage");
+const {
+  isExpoPushToken,
+  saveUserPushToken,
+} = require("../utils/pushNotifications");
 
 const getMe = async (req, res) => {
   try {
@@ -239,6 +243,53 @@ const updateMyPreferences = async (req, res) => {
   }
 };
 
+const registerMyPushToken = async (req, res) => {
+  try {
+    const {
+      expo_push_token,
+      expoPushToken,
+      device_platform,
+      devicePlatform,
+      enabled,
+    } = req.body || {};
+
+    const rawToken = expo_push_token ?? expoPushToken ?? "";
+    const normalizedToken = String(rawToken || "").trim();
+    const pushEnabled =
+      enabled === undefined
+        ? true
+        : enabled === true ||
+          enabled === "true" ||
+          enabled === 1 ||
+          enabled === "1";
+
+    if (pushEnabled && !isExpoPushToken(normalizedToken)) {
+      return res.status(400).json({
+        message: "Expo push token nije validan.",
+      });
+    }
+
+    const savedToken = await saveUserPushToken({
+      userId: req.user.id,
+      expoPushToken: normalizedToken,
+      devicePlatform: device_platform || devicePlatform || "mobile",
+      enabled: pushEnabled,
+    });
+
+    res.json({
+      message: pushEnabled
+        ? "Push token je uspjesno sacuvan."
+        : "Push notifikacije su uspjesno iskljucene.",
+      push_token: savedToken,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Greska pri cuvanju push tokena.",
+      error: error.message,
+    });
+  }
+};
+
 const deleteUser = async (req, res) => {
   const { id } = req.params;
 
@@ -302,4 +353,5 @@ module.exports = {
   deleteUser,
   updateMyProfileImage,
   updateMyPreferences,
+  registerMyPushToken,
 };

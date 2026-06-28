@@ -3,6 +3,7 @@ import * as Notifications from "expo-notifications";
 
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import { navigateFromNotification } from "../navigation/navigationRef";
 import {
   startCitaonaTrackingAgent,
   stopCitaonaTrackingAgent,
@@ -18,9 +19,9 @@ export function AppServices() {
       return;
     }
 
-    if (user.role === "student") {
-      void registerPushToken();
+    void registerPushToken();
 
+    if (user.role === "student") {
       if (user.location_tracking_consent === true) {
         const stop = startCitaonaTrackingAgent();
         return () => {
@@ -38,7 +39,10 @@ export function AppServices() {
     const notificationSubscription =
       Notifications.addNotificationReceivedListener(() => {});
     const responseSubscription =
-      Notifications.addNotificationResponseReceivedListener(() => {});
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        const data = response.notification.request.content.data;
+        navigateFromNotification(data);
+      });
 
     return () => {
       notificationSubscription.remove();
@@ -59,7 +63,7 @@ async function registerPushToken() {
       return;
     }
 
-    await api.post("/citaona/push-token", {
+    await api.post("/users/push-token", {
       expo_push_token: push.token,
       device_platform: "mobile",
       enabled: true,

@@ -6,12 +6,13 @@ import { colors } from "../theme/colors";
 import { AdminNavigator } from "./AdminNavigator";
 import { AuthNavigator } from "./AuthNavigator";
 import { MainNavigator } from "./MainNavigator";
+import { navigationRef } from "./navigationRef";
 
 export function RootNavigator() {
   const { status, user, resetMode } = useAuth();
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       {status === "loading" ? (
         <View
           style={{
